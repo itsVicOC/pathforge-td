@@ -7,9 +7,12 @@ import { TowerManager } from '../systems/TowerManager';
 import { EnemyManager } from '../systems/EnemyManager';
 import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
+import { saveManager } from '../systems/SaveManager';
 import { CanvasRenderer } from '../renderer/CanvasRenderer';
 import { UIManager } from '../ui/UIManager';
+import { MenuManager } from '../ui/MenuManager';
 import { LEVEL_CONFIGS } from '../config/levels';
+import { AudioManager } from '../audio/AudioManager';
 import { MAX_DELTA_TIME } from '../config/gameConfig';
 import { Enemy } from '../entities/Enemy';
 import type { Vec2 } from '../types';
@@ -24,8 +27,12 @@ export class Game {
   private enemyManager: EnemyManager;
   private waveManager: WaveManager;
   private uiManager: UIManager;
+  private menuManager: MenuManager;
+  private audioManager: AudioManager;
 
   private lastTime = 0;
+  private currentLevelId = '1-1';
+  private totalKills = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new CanvasRenderer(canvas);
@@ -38,14 +45,29 @@ export class Game {
     this.towerManager = new TowerManager(this.grid, this.pathfinder, this.economy);
     this.waveManager = new WaveManager(this.enemyManager, this.economy);
     this.uiManager = new UIManager(this.state, this.economy, this.towerManager, this.waveManager);
+    this.menuManager = new MenuManager();
+    this.audioManager = new AudioManager();
 
     this.bindEvents();
   }
 
   public init(): void {
-    this.loadLevel('1-1');
-    this.state.setPhase('build');
+    this.audioManager.init();
+    this.audioManager.startMusic();
+    this.menuManager.setSaveData(saveManager.getData());
+    this.menuManager.showScreen('main-menu');
+    this.menuManager.setLevelSelectCallback((levelId) => {
+      this.startLevel(levelId);
+    });
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  public startLevel(levelId: string): void {
+    this.currentLevelId = levelId;
+    this.loadLevel(levelId);
+    this.totalKills = 0;
+    this.state.setPhase('build');
+    this.menuManager.hideAll();
   }
 
   public loadLevel(levelId: string): void {
@@ -65,10 +87,14 @@ export class Game {
     this.state.setWave(0);
     this.state.setTotalWaves(config.waves.length);
     this.state.selectTower(undefined);
+    this.state.setPaused(false);
   }
 
   private bindEvents(): void {
     eventBus.on('input:click', (pos: Vec2 & { pixelX: number; pixelY: number; button: number }) => {
+      const phase = this.state.getState().phase;
+      if (phase === 'menu') return;
+
       const handled = this.uiManager.handleClick(pos.pixelX, pos.pixelY);
       if (!handled) {
         this.handleClick(pos.x, pos.y, pos.button);
@@ -83,30 +109,50 @@ export class Game {
       this.handleKey(key);
     });
 
-    eventBus.on('tower:fire', ({ target, damage, damageType }: {
+    eventBus.on('tower:placed', () => {
+      this.audioManager.playSfx('build');
+    });
+
+    eventBus.on('tower:sold', () => {
+      this.audioManager.playSfx('build');
+    });
+
+    eventBus.on('tower:fire', ({ tower, target, damage, damageType }: {
+      tower: import('../entities/Tower').Tower;
       target: Enemy;
       damage: number;
       damageType: string;
     }) => {
       target.takeDamage(damage, damageType as any);
+      if (tower.config.id === 'cannon') {
+        this.audioManager.playSfx('cannon');
+      } else {
+        this.audioManager.playSfx('shoot');
+      }
+    });
+
+    eventBus.on('enemy:damaged', () => {
+      this.audioManager.playSfx('hit');
     });
 
     eventBus.on('enemy:killed', ({ reward }: { reward: number }) => {
       this.economy.addKillReward(reward);
+      this.totalKills++;
+      this.audioManager.playSfx('enemyDeath');
     });
 
     eventBus.on('enemy:reachedCore', () => {
       const newLives = this.state.getState().lives - 1;
       this.state.setLives(newLives);
       if (newLives <= 0) {
-        this.state.setPhase('defeat');
+        this.endGame(false);
       }
     });
 
     eventBus.on('wave:complete', ({ current }: { current: number }) => {
       this.state.setWave(current);
       if (current >= this.waveManager.getTotalWaves()) {
-        this.state.setPhase('victory');
+        this.endGame(true);
       } else {
         this.state.setPhase('build');
       }
@@ -116,6 +162,7 @@ export class Game {
       if (this.waveManager.canStartWave()) {
         this.state.setPhase('combat');
         this.waveManager.startWave();
+        this.audioManager.playSfx('waveStart');
       }
     });
 
@@ -123,11 +170,59 @@ export class Game {
       const current = this.state.getState().selectedTowerId;
       this.state.selectTower(current === towerId ? undefined : towerId);
     });
+
+    // Menu events
+    eventBus.on('menu:resume', () => {
+      this.state.setPaused(false);
+    });
+
+    eventBus.on('menu:restart', () => {
+      this.startLevel(this.currentLevelId);
+    });
+
+    eventBus.on('menu:quit', () => {
+      this.menuManager.showScreen('main-menu');
+      this.state.setPhase('menu');
+    });
+
+    eventBus.on('menu:levels', () => {
+      this.state.setPhase('menu');
+    });
+  }
+
+  private endGame(victory: boolean): void {
+    const phase = victory ? 'victory' : 'defeat';
+    this.state.setPhase(phase);
+    this.audioManager.playSfx(victory ? 'victory' : 'defeat');
+
+    const config = LEVEL_CONFIGS[this.currentLevelId];
+    const lives = this.state.getState().lives;
+    const maxLives = config?.lives ?? lives;
+    const lifeRatio = lives / maxLives;
+    const stars = victory ? (lifeRatio >= 0.8 ? 3 : lifeRatio >= 0.4 ? 2 : 1) : 0;
+
+    if (victory) {
+      saveManager.completeLevel(this.currentLevelId, stars);
+      saveManager.updateStats({ totalKills: this.totalKills });
+      this.menuManager.setSaveData(saveManager.getData());
+    }
+
+    this.menuManager.showGameOver(victory, {
+      wave: this.waveManager.getCurrentWave(),
+      kills: this.totalKills,
+    });
+    eventBus.emit('game:complete', {
+      levelId: this.currentLevelId,
+      victory,
+      wave: this.waveManager.getCurrentWave(),
+      lives,
+      stars,
+    });
   }
 
   private handleClick(x: number, y: number, button: number): void {
     const phase = this.state.getState().phase;
-    if (phase === 'defeat' || phase === 'victory') return;
+    if (phase === 'defeat' || phase === 'victory' || phase === 'menu') return;
 
     if (button === 2) {
       this.state.selectTower(undefined);
@@ -143,22 +238,26 @@ export class Game {
     }
 
     if (selectedTowerId && (phase === 'build' || phase === 'wave_clear')) {
-      if (this.towerManager.placeTower(x, y, selectedTowerId)) {
-        // 放置成功后保持选择，方便连续建造
-      }
+      this.towerManager.placeTower(x, y, selectedTowerId);
     }
   }
 
   private handleKey(key: string): void {
+    const phase = this.state.getState().phase;
+
     if (key === ' ') {
-      const phase = this.state.getState().phase;
       if (phase === 'build' || phase === 'wave_clear') {
         eventBus.emit('ui:startWave');
       } else if (phase === 'combat') {
         this.state.togglePause();
       }
     } else if (key === 'Escape') {
-      this.state.selectTower(undefined);
+      if (phase === 'combat' || phase === 'build' || phase === 'wave_clear') {
+        this.state.setPaused(true);
+        this.menuManager.showPauseMenu();
+      } else if (phase === 'victory' || phase === 'defeat') {
+        // 已被菜单覆盖
+      }
     } else if (key === '1') {
       this.state.selectTower('archer');
     } else if (key === '2') {
@@ -194,6 +293,12 @@ export class Game {
   }
 
   private render(): void {
+    const phase = this.state.getState().phase;
+    if (phase === 'menu') {
+      this.renderer.clear();
+      return;
+    }
+
     this.renderer.clear();
     this.renderer.drawGrid(this.grid);
     this.renderer.drawPaths(this.pathfinder.getAllPaths());
@@ -203,6 +308,7 @@ export class Game {
     this.uiManager.render(this.renderer);
   }
 
+  public getMenuManager(): MenuManager { return this.menuManager; }
   public getState(): StateManager { return this.state; }
   public getEconomy(): EconomyManager { return this.economy; }
   public getTowerManager(): TowerManager { return this.towerManager; }

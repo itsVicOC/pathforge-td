@@ -33,11 +33,145 @@
         height: 100%;
         image-rendering: pixelated;
       }
+      .screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(26, 26, 46, 0.95);
+        z-index: 10;
+      }
+      .screen.active {
+        display: flex;
+      }
+      .screen h1 {
+        font-size: 48px;
+        margin-bottom: 10px;
+        color: #ffd700;
+        text-shadow: 2px 2px 0 #000;
+      }
+      .screen h2 {
+        font-size: 32px;
+        margin-bottom: 30px;
+        color: #fff;
+      }
+      .screen p {
+        color: #aaa;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
+      .btn {
+        background: #2d4a3e;
+        border: 2px solid #4caf50;
+        color: #fff;
+        padding: 12px 32px;
+        margin: 8px;
+        font-size: 16px;
+        font-family: 'Courier New', Courier, monospace;
+        cursor: pointer;
+        transition: all 0.15s;
+        min-width: 200px;
+        text-align: center;
+      }
+      .btn:hover {
+        background: #4caf50;
+        transform: scale(1.05);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn.secondary {
+        background: #3a3a4a;
+        border-color: #6b6b8a;
+      }
+      .btn.secondary:hover {
+        background: #6b6b8a;
+      }
+      .level-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin: 20px 0;
+      }
+      .level-btn {
+        width: 80px;
+        height: 80px;
+        background: #2d4a3e;
+        border: 2px solid #4caf50;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 14px;
+      }
+      .level-btn:hover {
+        background: #4caf50;
+      }
+      .level-btn.locked {
+        background: #3a3a4a;
+        border-color: #666;
+        color: #888;
+        cursor: not-allowed;
+      }
+      .level-btn .stars {
+        color: #ffd700;
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      #pause-hint {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        color: #aaa;
+        font-size: 12px;
+        z-index: 5;
+      }
     </style>
   </head>
   <body>
     <div id="game-container">
       <canvas id="game-canvas" width="960" height="540"></canvas>
+      <div id="pause-hint">ESC: 取消选择 | 空格: 开始/暂停 | 右键: 取消</div>
+
+      <!-- 主菜单 -->
+      <div id="main-menu" class="screen active">
+        <h1>PathForge TD</h1>
+        <p>Shape the Maze. Defend the Core.</p>
+        <button class="btn" id="btn-campaign">战役模式</button>
+        <button class="btn secondary" id="btn-settings">设置</button>
+      </div>
+
+      <!-- 关卡选择 -->
+      <div id="level-select" class="screen">
+        <h2>选择关卡</h2>
+        <div class="level-grid" id="level-grid"></div>
+        <button class="btn secondary" id="btn-back-main">返回主菜单</button>
+      </div>
+
+      <!-- 暂停菜单 -->
+      <div id="pause-menu" class="screen">
+        <h2>已暂停</h2>
+        <button class="btn" id="btn-resume">继续游戏</button>
+        <button class="btn secondary" id="btn-restart">重新开始</button>
+        <button class="btn secondary" id="btn-quit">退出到主菜单</button>
+      </div>
+
+      <!-- 游戏结束 -->
+      <div id="game-over" class="screen">
+        <h2 id="game-over-title">游戏结束</h2>
+        <p id="game-over-stats"></p>
+        <button class="btn" id="btn-retry">再试一次</button>
+        <button class="btn secondary" id="btn-back-levels">关卡选择</button>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
