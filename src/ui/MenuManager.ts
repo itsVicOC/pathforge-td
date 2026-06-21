@@ -6,21 +6,28 @@ import type { SaveData } from '../types';
 export class MenuManager {
   private screens: Map<string, HTMLElement> = new Map();
   private onLevelSelect?: (levelId: string) => void;
+  private onEndlessStart?: () => void;
   private saveData: SaveData | null = null;
 
   constructor() {
     this.initScreens();
     this.bindButtons();
+    this.bindSettings();
   }
 
   public setSaveData(data: SaveData | null): void {
     this.saveData = data;
     this.updateLevelSelect();
     this.updateStatsScreen();
+    this.updateSettingsScreen();
   }
 
   public setLevelSelectCallback(callback: (levelId: string) => void): void {
     this.onLevelSelect = callback;
+  }
+
+  public setEndlessStartCallback(callback: () => void): void {
+    this.onEndlessStart = callback;
   }
 
   public showScreen(screenId: string): void {
@@ -31,6 +38,7 @@ export class MenuManager {
     if (target) {
       target.classList.add('active');
       if (screenId === 'stats-screen') this.updateStatsScreen();
+      if (screenId === 'settings-screen') this.updateSettingsScreen();
     }
   }
 
@@ -56,7 +64,7 @@ export class MenuManager {
   }
 
   private initScreens(): void {
-    const screenIds = ['main-menu', 'level-select', 'pause-menu', 'game-over', 'stats-screen'];
+    const screenIds = ['main-menu', 'level-select', 'pause-menu', 'game-over', 'stats-screen', 'settings-screen'];
     for (const id of screenIds) {
       const el = document.getElementById(id);
       if (el) this.screens.set(id, el);
@@ -67,6 +75,11 @@ export class MenuManager {
     document.getElementById('btn-campaign')?.addEventListener('click', () => {
       this.updateLevelSelect();
       this.showScreen('level-select');
+    });
+
+    document.getElementById('btn-endless')?.addEventListener('click', () => {
+      this.hideAll();
+      this.onEndlessStart?.();
     });
 
     document.getElementById('btn-back-main')?.addEventListener('click', () => {
@@ -107,6 +120,76 @@ export class MenuManager {
     document.getElementById('btn-back-main-stats')?.addEventListener('click', () => {
       this.showScreen('main-menu');
     });
+
+    document.getElementById('btn-settings')?.addEventListener('click', () => {
+      this.updateSettingsScreen();
+      this.showScreen('settings-screen');
+    });
+
+    document.getElementById('btn-back-main-settings')?.addEventListener('click', () => {
+      this.showScreen('main-menu');
+    });
+
+    document.getElementById('btn-reset-settings')?.addEventListener('click', () => {
+      eventBus.emit('settings:reset');
+    });
+  }
+
+  private bindSettings(): void {
+    const bindSlider = (id: string, event: string, valueId: string) => {
+      const input = document.getElementById(id) as HTMLInputElement | null;
+      if (!input) return;
+      input.addEventListener('input', () => {
+        const value = parseInt(input.value, 10) / 100;
+        const valueEl = document.getElementById(valueId);
+        if (valueEl) valueEl.textContent = `${input.value}%`;
+        eventBus.emit(event as any, value);
+      });
+    };
+
+    bindSlider('setting-master', 'settings:masterVolume', 'value-master');
+    bindSlider('setting-music', 'settings:musicVolume', 'value-music');
+    bindSlider('setting-sfx', 'settings:sfxVolume', 'value-sfx');
+
+    const quality = document.getElementById('setting-quality') as HTMLSelectElement | null;
+    quality?.addEventListener('change', () => {
+      eventBus.emit('settings:quality', quality.value);
+    });
+
+    const pathPreview = document.getElementById('setting-path-preview') as HTMLInputElement | null;
+    pathPreview?.addEventListener('change', () => {
+      eventBus.emit('settings:pathPreview', pathPreview.checked);
+    });
+
+    const particles = document.getElementById('setting-particles') as HTMLInputElement | null;
+    particles?.addEventListener('change', () => {
+      eventBus.emit('settings:particles', particles.checked);
+    });
+  }
+
+  private updateSettingsScreen(): void {
+    const settings = this.saveData?.settings;
+    if (!settings) return;
+
+    const setSlider = (id: string, valueId: string, value: number) => {
+      const input = document.getElementById(id) as HTMLInputElement | null;
+      const valueEl = document.getElementById(valueId);
+      if (input) input.value = String(Math.round(value * 100));
+      if (valueEl) valueEl.textContent = `${Math.round(value * 100)}%`;
+    };
+
+    setSlider('setting-master', 'value-master', settings.masterVolume);
+    setSlider('setting-music', 'value-music', settings.musicVolume);
+    setSlider('setting-sfx', 'value-sfx', settings.sfxVolume);
+
+    const quality = document.getElementById('setting-quality') as HTMLSelectElement | null;
+    if (quality) quality.value = (settings as any).quality ?? 'high';
+
+    const pathPreview = document.getElementById('setting-path-preview') as HTMLInputElement | null;
+    if (pathPreview) pathPreview.checked = (settings as any).showPathPreview ?? true;
+
+    const particles = document.getElementById('setting-particles') as HTMLInputElement | null;
+    if (particles) particles.checked = (settings as any).particleEffects ?? true;
   }
 
   private updateLevelSelect(): void {

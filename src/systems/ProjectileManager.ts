@@ -50,15 +50,22 @@ export class ProjectileManager {
 
   private onHit(projectile: Projectile, enemies: Enemy[]): void {
     const pos = projectile.getHitPosition();
+    const isBarracks = projectile.sourceTower.config.id === 'barracks';
 
-    if (projectile.projectileType === 'aoe') {
+    if (projectile.projectileType === 'aoe' || isBarracks) {
+      const radius = isBarracks ? 1.2 : AOE_RADIUS;
       for (const enemy of enemies) {
         const dist = Math.hypot(enemy.x - pos.x, enemy.y - pos.y);
-        if (dist <= AOE_RADIUS) {
+        if (dist <= radius) {
           enemy.takeDamage(projectile.damage, projectile.damageType);
+          if (isBarracks) {
+            enemy.applyEffect({ type: 'stun', duration: 0.5 });
+          }
         }
       }
-      eventBus.emit('effect:explosion', { x: pos.x, y: pos.y, color: '#ff9800', size: 1.5 });
+      const color = isBarracks ? '#795548' : '#ff9800';
+      const size = isBarracks ? 1.2 : 1.5;
+      eventBus.emit('effect:explosion', { x: pos.x, y: pos.y, color, size });
     } else {
       if (projectile.target.hp > 0) {
         projectile.target.takeDamage(projectile.damage, projectile.damageType);

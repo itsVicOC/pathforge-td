@@ -53,7 +53,10 @@ export interface EnemyConfig {
   flying: boolean;
   color: string;
   radius: number;
+  bossSkill?: BossSkillType;
 }
+
+export type BossSkillType = 'summon' | 'burningGround' | 'dash' | 'spawnFlyers';
 
 export interface WaveGroup {
   type: string;

@@ -13,6 +13,10 @@ export class SaveManager {
     return this.data;
   }
 
+  public saveCurrent(): void {
+    this.save(this.data);
+  }
+
   public save(data?: SaveData): void {
     if (data) this.data = data;
     try {

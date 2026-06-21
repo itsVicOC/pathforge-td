@@ -51,7 +51,7 @@ export const LEVEL_1_2_WAVES: WaveConfig[] = [
     { type: 'shielder', count: 6, interval: 1.1, delay: 0 },
     { type: 'fireElemental', count: 6, interval: 0.8, delay: 5 },
   ], bonus: 180 },
-  { wave: 8, groups: [{ type: 'boss', count: 1, interval: 1.0, delay: 0 }], bonus: 600 },
+  { wave: 8, groups: [{ type: 'lavaBoss', count: 1, interval: 1.0, delay: 0 }], bonus: 600 },
 ];
 
 export const LEVEL_1_3_WAVES: WaveConfig[] = [
@@ -67,7 +67,7 @@ export const LEVEL_1_3_WAVES: WaveConfig[] = [
   ], bonus: 160 },
   { wave: 5, groups: [
     { type: 'fireElemental', count: 12, interval: 0.6, delay: 0 },
-    { type: 'boss', count: 1, interval: 1.0, delay: 5 },
+    { type: 'skyBoss', count: 1, interval: 1.0, delay: 5 },
   ], bonus: 700 },
 ];
 

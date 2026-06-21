@@ -7,6 +7,7 @@ export class InputManager {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    this.canvas.style.touchAction = 'none';
     this.updateScale();
     this.bindEvents();
   }
@@ -16,6 +17,8 @@ export class InputManager {
     this.canvas.addEventListener('pointermove', this.onPointerMove);
     this.canvas.addEventListener('pointerup', this.onPointerUp);
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    this.canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+    this.canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('resize', this.onResize);

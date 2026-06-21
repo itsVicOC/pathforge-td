@@ -172,6 +172,21 @@ export class CanvasRenderer {
     this.ctx.fillText(text, x + w / 2, y + h / 2);
   }
 
+  public drawTemporaryEffects(effects: Map<string, { type: string; duration: number }>): void {
+    for (const [key, effect] of effects) {
+      const [x, y] = key.split(',').map(Number);
+      const alpha = Math.min(1, effect.duration / 1.5);
+
+      if (effect.type === 'damage') {
+        this.ctx.fillStyle = `rgba(255, 87, 34, ${alpha * 0.6})`;
+        this.ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      } else if (effect.type === 'slow') {
+        this.ctx.fillStyle = `rgba(0, 188, 212, ${alpha * 0.4})`;
+        this.ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
+    }
+  }
+
   public drawProjectiles(projectiles: Projectile[]): void {
     for (const p of projectiles) {
       const x = p.x * TILE_SIZE;

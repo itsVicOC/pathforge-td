@@ -65,8 +65,27 @@ export class TowerManager {
   }
 
   public update(dt: number, enemies: Enemy[]): void {
+    this.applySupportBuffs();
     for (const tower of this.towers) {
       tower.update(dt, enemies);
+    }
+  }
+
+  private applySupportBuffs(): void {
+    for (const tower of this.towers) {
+      tower.resetBuff();
+    }
+
+    const supports = this.towers.filter(t => t.config.id === 'support');
+    for (const support of supports) {
+      const range = support.getRange();
+      for (const tower of this.towers) {
+        if (tower === support) continue;
+        const dist = Math.hypot(tower.x - support.x, tower.y - support.y);
+        if (dist <= range) {
+          tower.applyBuff(1.2, 0.5, 1.1);
+        }
+      }
     }
   }
 

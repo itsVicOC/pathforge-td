@@ -8,6 +8,7 @@ import { EnemyManager } from '../systems/EnemyManager';
 import { WaveManager } from '../systems/WaveManager';
 import { EconomyManager } from '../systems/EconomyManager';
 import { saveManager } from '../systems/SaveManager';
+import { SettingsManager } from '../systems/SettingsManager';
 import { ProjectileManager } from '../systems/ProjectileManager';
 import { EffectManager } from '../systems/EffectManager';
 import { CanvasRenderer } from '../renderer/CanvasRenderer';
@@ -33,12 +34,16 @@ export class Game {
   private audioManager: AudioManager;
   private projectileManager: ProjectileManager;
   private effectManager: EffectManager;
+  private settingsManager: SettingsManager;
 
   private lastTime = 0;
   private currentLevelId = '1-1';
+  private isEndless = false;
   private totalKills = 0;
   private bossKills = 0;
   private maxPathLength = 0;
+  private showPathPreview = true;
+  private particleEffects = true;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new CanvasRenderer(canvas);
@@ -55,11 +60,13 @@ export class Game {
     this.audioManager = new AudioManager();
     this.projectileManager = new ProjectileManager();
     this.effectManager = new EffectManager();
+    this.settingsManager = new SettingsManager(saveManager.getData());
 
     this.bindEvents();
   }
 
   public init(): void {
+    this.applySettings();
     this.audioManager.init();
     this.audioManager.startMusic();
     this.menuManager.setSaveData(saveManager.getData());
@@ -67,16 +74,33 @@ export class Game {
     this.menuManager.setLevelSelectCallback((levelId) => {
       this.startLevel(levelId);
     });
+    this.menuManager.setEndlessStartCallback(() => {
+      this.startEndless();
+    });
     requestAnimationFrame((t) => this.loop(t));
   }
 
   public startLevel(levelId: string): void {
+    this.isEndless = false;
     this.currentLevelId = levelId;
     this.loadLevel(levelId);
     this.totalKills = 0;
     this.bossKills = 0;
     this.maxPathLength = 0;
     this.state.setPhase('build');
+    this.menuManager.hideAll();
+  }
+
+  public startEndless(): void {
+    this.isEndless = true;
+    this.currentLevelId = 'endless';
+    this.loadLevel('1-1');
+    this.waveManager.startEndless();
+    this.totalKills = 0;
+    this.bossKills = 0;
+    this.maxPathLength = 0;
+    this.state.setPhase('build');
+    this.state.setTotalWaves(0);
     this.menuManager.hideAll();
   }
 
@@ -138,13 +162,15 @@ export class Game {
       const pType = tower.config.projectileType;
       if (pType === 'hitscan') {
         target.takeDamage(damage, damageType as any);
-        eventBus.emit('effect:beam', {
-          x1: tower.x + 0.5,
-          y1: tower.y + 0.5,
-          x2: target.x,
-          y2: target.y,
-          color: tower.config.color,
-        });
+        if (this.particleEffects) {
+          eventBus.emit('effect:beam', {
+            x1: tower.x + 0.5,
+            y1: tower.y + 0.5,
+            x2: target.x,
+            y2: target.y,
+            color: tower.config.color,
+          });
+        }
       } else {
         this.projectileManager.spawn(tower, target, damage, damageType, pType);
       }
@@ -177,7 +203,9 @@ export class Game {
 
     eventBus.on('wave:complete', ({ current }: { current: number }) => {
       this.state.setWave(current);
-      if (current >= this.waveManager.getTotalWaves()) {
+      if (this.waveManager.isEndless()) {
+        this.state.setPhase('build');
+      } else if (current >= this.waveManager.getTotalWaves()) {
         this.endGame(true);
       } else {
         this.state.setPhase('build');
@@ -197,29 +225,87 @@ export class Game {
       this.state.selectTower(current === towerId ? undefined : towerId);
     });
 
+    // Settings events
+    eventBus.on('settings:masterVolume', (v: number) => this.settingsManager.setMasterVolume(v));
+    eventBus.on('settings:musicVolume', (v: number) => this.settingsManager.setMusicVolume(v));
+    eventBus.on('settings:sfxVolume', (v: number) => this.settingsManager.setSfxVolume(v));
+    eventBus.on('settings:quality', (q: any) => this.settingsManager.setQuality(q));
+    eventBus.on('settings:pathPreview', (show: boolean) => this.settingsManager.setShowPathPreview(show));
+    eventBus.on('settings:particles', (enabled: boolean) => this.settingsManager.setParticleEffects(enabled));
+    eventBus.on('settings:reset', () => this.settingsManager.reset());
+    eventBus.on('settings:changed', () => this.applySettings());
+    eventBus.on('save:request', () => saveManager.saveCurrent());
+
+    // Menu events
+    eventBus.on('boss:summon', ({ count }: { count: number }) => {
+      for (let i = 0; i < count; i++) {
+        this.enemyManager.spawnEnemy('slime');
+      }
+    });
+
+    eventBus.on('boss:burningGround', ({ x, y }: { x: number; y: number }) => {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          this.grid.applyTemporaryTerrain(x + dx, y + dy, 'damage', 5);
+        }
+      }
+    });
+
+    eventBus.on('boss:spawnFlyers', ({ count }: { count: number }) => {
+      for (let i = 0; i < count; i++) {
+        this.enemyManager.spawnEnemy('flyer');
+      }
+    });
+
     // Menu events
     eventBus.on('menu:resume', () => {
       this.state.setPaused(false);
     });
 
     eventBus.on('menu:restart', () => {
-      this.startLevel(this.currentLevelId);
+      if (this.isEndless) {
+        this.startEndless();
+      } else {
+        this.startLevel(this.currentLevelId);
+      }
     });
 
     eventBus.on('menu:quit', () => {
-      this.menuManager.showScreen('main-menu');
-      this.state.setPhase('menu');
+      this.showMainMenu();
     });
 
     eventBus.on('menu:levels', () => {
-      this.state.setPhase('menu');
+      this.showMainMenu();
     });
+  }
+
+  private applySettings(): void {
+    const settings = this.settingsManager.getSettings();
+    this.audioManager.setMasterVolume(settings.masterVolume);
+    this.audioManager.setMusicVolume(settings.musicVolume);
+    this.audioManager.setSfxVolume(settings.sfxVolume);
+    this.showPathPreview = settings.showPathPreview;
+    this.particleEffects = settings.particleEffects;
+  }
+
+  private showMainMenu(): void {
+    this.state.setPhase('menu');
+    this.menuManager.setSaveData(saveManager.getData());
+    this.menuManager.showScreen('main-menu');
   }
 
   private endGame(victory: boolean): void {
     const phase = victory ? 'victory' : 'defeat';
     this.state.setPhase(phase);
     this.audioManager.playSfx(victory ? 'victory' : 'defeat');
+
+    if (this.isEndless) {
+      const wave = this.waveManager.getCurrentWave();
+      saveManager.updateStats({ highestWave: wave, totalKills: this.totalKills });
+      this.menuManager.showGameOver(false, { wave, kills: this.totalKills });
+      this.menuManager.setSaveData(saveManager.getData());
+      return;
+    }
 
     const config = LEVEL_CONFIGS[this.currentLevelId];
     const lives = this.state.getState().lives;
@@ -335,6 +421,7 @@ export class Game {
     if (phase === 'combat') {
       this.waveManager.update(scaledDt);
       this.enemyManager.update(scaledDt);
+      this.grid.update(scaledDt);
     }
 
     this.towerManager.update(scaledDt, this.enemyManager.getEnemies());
@@ -352,16 +439,21 @@ export class Game {
 
     this.renderer.clear();
     this.renderer.drawGrid(this.grid);
-    this.renderer.drawPaths(this.pathfinder.getAllPaths());
+    this.renderer.drawTemporaryEffects(this.grid.getTemporaryEffects());
+    if (this.showPathPreview) {
+      this.renderer.drawPaths(this.pathfinder.getAllPaths());
+    }
     this.renderer.drawHover(this.state.getState().hoveredCell, this.state.getState().selectedTowerId);
     this.towerManager.getTowers().forEach(t => this.renderer.drawTower(t));
     this.enemyManager.getEnemies().forEach(e => this.renderer.drawEnemy(e));
     this.renderer.drawProjectiles(this.projectileManager.getProjectiles());
-    this.renderer.drawEffects(
-      this.effectManager.getParticles(),
-      this.effectManager.getHitEffects(),
-      this.effectManager.getBeamEffects(),
-    );
+    if (this.particleEffects) {
+      this.renderer.drawEffects(
+        this.effectManager.getParticles(),
+        this.effectManager.getHitEffects(),
+        this.effectManager.getBeamEffects(),
+      );
+    }
     this.uiManager.render(this.renderer);
   }
 

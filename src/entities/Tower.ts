@@ -12,6 +12,9 @@ export class Tower {
   public cooldown = 0;
   public buildProgress = 0;
   public built = false;
+  public buffDamage = 1;
+  public buffRange = 0;
+  public buffFireRate = 1;
 
   constructor(x: number, y: number, config: TowerConfig) {
     this.id = `tower_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -21,12 +24,27 @@ export class Tower {
     this.totalInvested = config.cost;
   }
 
+  public resetBuff(): void {
+    this.buffDamage = 1;
+    this.buffRange = 0;
+    this.buffFireRate = 1;
+  }
+
+  public applyBuff(damage: number, range: number, fireRate: number): void {
+    this.buffDamage *= damage;
+    this.buffRange += range;
+    this.buffFireRate *= fireRate;
+  }
+
   public update(dt: number, enemies: Enemy[]): void {
     if (!this.built) {
       this.buildProgress += dt;
       if (this.buildProgress >= 0.3) this.built = true;
       return;
     }
+
+    // 辅助/兵营塔不主动攻击
+    if (this.config.damage <= 0) return;
 
     if (this.cooldown > 0) {
       this.cooldown -= dt;
@@ -70,20 +88,20 @@ export class Tower {
 
   public getDamage(): number {
     const upgrade = this.config.upgrades[this.level - 1];
-    if (!upgrade) return this.config.damage;
-    return Math.round(this.config.damage * upgrade.damageMultiplier);
+    const base = upgrade ? this.config.damage * upgrade.damageMultiplier : this.config.damage;
+    return Math.round(base * this.buffDamage);
   }
 
   public getRange(): number {
     const upgrade = this.config.upgrades[this.level - 1];
     const bonus = upgrade ? upgrade.rangeBonus : 0;
-    return this.config.range + bonus;
+    return this.config.range + bonus + this.buffRange;
   }
 
   public getFireRate(): number {
     const upgrade = this.config.upgrades[this.level - 1];
     const multiplier = upgrade ? upgrade.fireRateMultiplier : 1;
-    return this.config.fireRate * multiplier;
+    return this.config.fireRate * multiplier * this.buffFireRate;
   }
 
   public getNextUpgrade(): UpgradeConfig | undefined {

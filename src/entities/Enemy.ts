@@ -12,6 +12,7 @@ export class Enemy {
   public pathProgress = 0;
   public activeEffects: Map<string, EffectSnapshot> = new Map();
   public reachedCore = false;
+  public skillCooldown = 0;
 
   constructor(config: EnemyConfig, path: Vec2[]) {
     this.config = config;
@@ -20,17 +21,56 @@ export class Enemy {
     this.y = path[0].y + 0.5;
     this.maxHp = config.hp;
     this.hp = config.hp;
+    this.skillCooldown = this.getSkillInterval();
   }
 
   public update(dt: number): void {
     this.updateEffects(dt);
     this.move(dt);
+    this.updateBossSkill(dt);
+  }
+
+  private updateBossSkill(dt: number): void {
+    if (!this.config.bossSkill || this.reachedCore) return;
+
+    this.skillCooldown -= dt;
+    if (this.skillCooldown > 0) return;
+
+    this.skillCooldown = this.getSkillInterval();
+
+    switch (this.config.bossSkill) {
+      case 'summon':
+        eventBus.emit('boss:summon', { x: this.x, y: this.y, count: 3 });
+        break;
+      case 'burningGround':
+        eventBus.emit('boss:burningGround', { x: Math.floor(this.x), y: Math.floor(this.y) });
+        break;
+      case 'spawnFlyers':
+        eventBus.emit('boss:spawnFlyers', { count: 2 });
+        break;
+      case 'dash':
+        this.applyEffect({ type: 'dash', duration: 1.0 });
+        break;
+    }
+  }
+
+  private getSkillInterval(): number {
+    switch (this.config.bossSkill) {
+      case 'summon': return 5;
+      case 'burningGround': return 4;
+      case 'spawnFlyers': return 5;
+      case 'dash': return 6;
+      default: return 5;
+    }
   }
 
   private move(dt: number): void {
     if (this.reachedCore) return;
 
     let speed = this.getCurrentSpeed();
+    const dash = this.activeEffects.get('dash');
+    if (dash) speed *= 3;
+
     let remaining = speed * dt;
 
     while (remaining > 0.001 && this.pathIndex < this.path.length - 1) {
@@ -61,6 +101,9 @@ export class Enemy {
   }
 
   private getCurrentSpeed(): number {
+    const stun = this.activeEffects.get('stun');
+    if (stun) return 0;
+
     let speed = this.config.speed;
     const slow = this.activeEffects.get('slow');
     const terrainSlow = this.activeEffects.get('terrainSlow');

@@ -6,6 +6,7 @@ export class Grid {
   private cores: Vec2[] = [];
   private width = 0;
   private height = 0;
+  private temporaryEffects: Map<string, { type: TerrainEffect; duration: number }> = new Map();
 
   public load(cellTypes: CellType[][]): void {
     this.height = cellTypes.length;
@@ -15,6 +16,7 @@ export class Grid {
     );
     this.spawns = this.findCellsOfType('spawn');
     this.cores = this.findCellsOfType('core');
+    this.temporaryEffects.clear();
   }
 
   public getWidth(): number { return this.width; }
@@ -49,7 +51,24 @@ export class Grid {
     return !!cell && (cell.type === 'buildable' || cell.type === 'forest') && !cell.towerId;
   }
 
+  public update(dt: number): void {
+    for (const [key, effect] of this.temporaryEffects) {
+      effect.duration -= dt;
+      if (effect.duration <= 0) {
+        this.temporaryEffects.delete(key);
+      }
+    }
+  }
+
+  public applyTemporaryTerrain(x: number, y: number, effect: TerrainEffect, duration: number): void {
+    if (effect === 'none') return;
+    this.temporaryEffects.set(`${x},${y}`, { type: effect, duration });
+  }
+
   public getTerrainEffect(x: number, y: number): TerrainEffect {
+    const temp = this.temporaryEffects.get(`${x},${y}`);
+    if (temp) return temp.type;
+
     const cell = this.getCell(x, y);
     if (!cell) return 'none';
     if (cell.type === 'lava') return 'damage';
@@ -70,6 +89,10 @@ export class Grid {
   public getCores(): Vec2[] { return this.cores; }
 
   public getCells(): GridCell[][] { return this.cells; }
+
+  public getTemporaryEffects(): Map<string, { type: TerrainEffect; duration: number }> {
+    return this.temporaryEffects;
+  }
 
   private findCellsOfType(type: CellType): Vec2[] {
     const result: Vec2[] = [];
