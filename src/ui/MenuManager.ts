@@ -1,5 +1,6 @@
 import { eventBus } from '../core/EventBus';
 import { LEVEL_CONFIGS } from '../config/levels';
+import { ACHIEVEMENTS } from '../config/achievements';
 import type { SaveData } from '../types';
 
 export class MenuManager {
@@ -15,6 +16,7 @@ export class MenuManager {
   public setSaveData(data: SaveData | null): void {
     this.saveData = data;
     this.updateLevelSelect();
+    this.updateStatsScreen();
   }
 
   public setLevelSelectCallback(callback: (levelId: string) => void): void {
@@ -26,7 +28,10 @@ export class MenuManager {
       screen.classList.remove('active');
     }
     const target = this.screens.get(screenId);
-    if (target) target.classList.add('active');
+    if (target) {
+      target.classList.add('active');
+      if (screenId === 'stats-screen') this.updateStatsScreen();
+    }
   }
 
   public hideAll(): void {
@@ -51,7 +56,7 @@ export class MenuManager {
   }
 
   private initScreens(): void {
-    const screenIds = ['main-menu', 'level-select', 'pause-menu', 'game-over'];
+    const screenIds = ['main-menu', 'level-select', 'pause-menu', 'game-over', 'stats-screen'];
     for (const id of screenIds) {
       const el = document.getElementById(id);
       if (el) this.screens.set(id, el);
@@ -94,8 +99,13 @@ export class MenuManager {
       eventBus.emit('menu:levels');
     });
 
-    document.getElementById('btn-settings')?.addEventListener('click', () => {
-      alert('设置功能即将上线');
+    document.getElementById('btn-stats')?.addEventListener('click', () => {
+      this.updateStatsScreen();
+      this.showScreen('stats-screen');
+    });
+
+    document.getElementById('btn-back-main-stats')?.addEventListener('click', () => {
+      this.showScreen('main-menu');
     });
   }
 
@@ -130,6 +140,55 @@ export class MenuManager {
       }
 
       grid.appendChild(btn);
+    }
+  }
+
+  private updateStatsScreen(): void {
+    const summary = document.getElementById('stats-summary');
+    const list = document.getElementById('achievements-list');
+    if (!summary || !list) return;
+
+    const stats = this.saveData?.stats ?? { totalKills: 0, highestWave: 0 };
+    const campaign = this.saveData?.progress.campaign ?? {};
+    const unlocked = this.saveData?.progress.achievements ?? [];
+
+    let totalStars = 0;
+    let completedLevels = 0;
+    for (const levelProgress of Object.values(campaign)) {
+      const stars = this.getLevelStars(levelProgress);
+      totalStars += stars;
+      if (stars > 0) completedLevels++;
+    }
+
+    summary.innerHTML = `
+      <div>累计击杀: ${stats.totalKills}</div>
+      <div>最高波次: ${stats.highestWave}</div>
+      <div>通关关卡: ${completedLevels} / ${Object.keys(LEVEL_CONFIGS).length}</div>
+      <div>获得星星: ${totalStars}</div>
+    `;
+
+    list.innerHTML = '';
+    for (const ach of ACHIEVEMENTS) {
+      const isUnlocked = unlocked.includes(ach.id);
+      const div = document.createElement('div');
+      div.style.cssText = `
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin: 6px 0;
+        background: ${isUnlocked ? 'rgba(76, 175, 80, 0.2)' : 'rgba(100, 100, 100, 0.2)'};
+        border: 1px solid ${isUnlocked ? '#4caf50' : '#666'};
+        opacity: ${isUnlocked ? 1 : 0.6};
+      `;
+      div.innerHTML = `
+        <span style="font-size: 24px; margin-right: 12px;">${ach.icon}</span>
+        <div>
+          <div style="font-weight: bold;">${ach.name}</div>
+          <div style="font-size: 12px; color: #aaa;">${ach.description}</div>
+        </div>
+        <div style="margin-left: auto;">${isUnlocked ? '✅' : '🔒'}</div>
+      `;
+      list.appendChild(div);
     }
   }
 

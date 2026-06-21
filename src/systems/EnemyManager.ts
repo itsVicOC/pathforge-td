@@ -1,6 +1,7 @@
 import { eventBus } from '../core/EventBus';
 import { ENEMY_CONFIGS } from '../config/enemies';
 import { Pathfinder } from './Pathfinder';
+import { Grid } from './Grid';
 import { Enemy } from '../entities/Enemy';
 import type { EnemyConfig, Vec2 } from '../types';
 
@@ -9,6 +10,7 @@ export class EnemyManager {
 
   constructor(
     private pathfinder: Pathfinder,
+    private grid: Grid,
   ) {}
 
   public clear(): void {
@@ -52,6 +54,9 @@ export class EnemyManager {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
       enemy.update(dt);
+
+      const terrain = this.grid.getTerrainEffect(Math.floor(enemy.x), Math.floor(enemy.y));
+      enemy.applyTerrainEffect(terrain, dt);
 
       if (enemy.reachedCore) {
         eventBus.emit('enemy:reachedCore', { enemy });

@@ -2,6 +2,8 @@ import { TILE_SIZE, COLORS } from '../config/gameConfig';
 import type { Grid } from '../systems/Grid';
 import type { Tower } from '../entities/Tower';
 import type { Enemy } from '../entities/Enemy';
+import type { Projectile } from '../entities/Projectile';
+import type { Particle, HitEffect, BeamEffect } from '../entities/Effect';
 import type { Vec2 } from '../types';
 
 export class CanvasRenderer {
@@ -40,6 +42,8 @@ export class CanvasRenderer {
       case 'path': return COLORS.gridPath;
       case 'obstacle': return COLORS.gridObstacle;
       case 'water': return COLORS.gridWater;
+      case 'lava': return '#8b0000';
+      case 'forest': return '#1b5e20';
       case 'spawn': return COLORS.gridSpawn;
       case 'core': return COLORS.gridCore;
       default: return '#000';
@@ -166,6 +170,59 @@ export class CanvasRenderer {
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.ctx.fillText(text, x + w / 2, y + h / 2);
+  }
+
+  public drawProjectiles(projectiles: Projectile[]): void {
+    for (const p of projectiles) {
+      const x = p.x * TILE_SIZE;
+      const y = p.y * TILE_SIZE;
+
+      this.ctx.fillStyle = p.sourceTower.config.color;
+      this.ctx.beginPath();
+      if (p.projectileType === 'aoe') {
+        this.ctx.arc(x, y, 5, 0, Math.PI * 2);
+      } else {
+        this.ctx.arc(x, y, 3, 0, Math.PI * 2);
+      }
+      this.ctx.fill();
+    }
+  }
+
+  public drawEffects(
+    particles: Particle[],
+    hitEffects: HitEffect[],
+    beamEffects: BeamEffect[],
+  ): void {
+    for (const beam of beamEffects) {
+      this.ctx.strokeStyle = beam.color;
+      this.ctx.lineWidth = 3;
+      this.ctx.globalAlpha = beam.life / beam.maxLife || 1;
+      this.ctx.beginPath();
+      this.ctx.moveTo(beam.x1 * TILE_SIZE, beam.y1 * TILE_SIZE);
+      this.ctx.lineTo(beam.x2 * TILE_SIZE, beam.y2 * TILE_SIZE);
+      this.ctx.stroke();
+      this.ctx.globalAlpha = 1;
+    }
+
+    for (const hit of hitEffects) {
+      const alpha = hit.life / hit.maxLife;
+      this.ctx.fillStyle = hit.color;
+      this.ctx.globalAlpha = alpha;
+      this.ctx.beginPath();
+      this.ctx.arc(hit.x * TILE_SIZE, hit.y * TILE_SIZE, 8 * alpha, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.globalAlpha = 1;
+    }
+
+    for (const p of particles) {
+      const alpha = p.fade ? p.life / p.maxLife : 1;
+      this.ctx.fillStyle = p.color;
+      this.ctx.globalAlpha = Math.max(0, alpha);
+      this.ctx.beginPath();
+      this.ctx.arc(p.x * TILE_SIZE, p.y * TILE_SIZE, p.size, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    this.ctx.globalAlpha = 1;
   }
 
   public getContext(): CanvasRenderingContext2D {

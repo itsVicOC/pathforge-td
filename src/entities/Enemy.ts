@@ -1,5 +1,5 @@
 import { eventBus } from '../core/EventBus';
-import type { DamageType, EffectSnapshot, EnemyConfig, Vec2 } from '../types';
+import type { DamageType, EffectSnapshot, EnemyConfig, TerrainEffect, Vec2 } from '../types';
 
 export class Enemy {
   public x: number;
@@ -63,7 +63,9 @@ export class Enemy {
   private getCurrentSpeed(): number {
     let speed = this.config.speed;
     const slow = this.activeEffects.get('slow');
+    const terrainSlow = this.activeEffects.get('terrainSlow');
     if (slow) speed *= 0.7;
+    if (terrainSlow) speed *= 0.8;
     return speed;
   }
 
@@ -96,6 +98,15 @@ export class Enemy {
 
   public applyEffect(effect: EffectSnapshot): void {
     this.activeEffects.set(effect.type, effect);
+  }
+
+  public applyTerrainEffect(terrain: TerrainEffect, dt: number): void {
+    if (terrain === 'slow') {
+      this.activeEffects.set('terrainSlow', { type: 'terrainSlow', duration: 0.2 });
+    } else if (terrain === 'damage') {
+      this.hp -= 5 * dt;
+      eventBus.emit('enemy:damaged', { enemy: this, damage: 5 * dt });
+    }
   }
 
   public get flying(): boolean { return this.config.flying; }

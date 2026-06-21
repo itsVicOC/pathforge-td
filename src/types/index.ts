@@ -15,6 +15,8 @@ export type CellType =
   | 'path'
   | 'obstacle'
   | 'water'
+  | 'lava'
+  | 'forest'
   | 'spawn'
   | 'core';
 
@@ -82,6 +84,7 @@ export interface LevelConfig {
 export type DamageType = 'physical' | 'fire' | 'ice' | 'lightning' | 'poison' | 'true';
 export type ProjectileType = 'projectile' | 'hitscan' | 'aoe' | 'beam';
 export type TargetFlag = 'ground' | 'flying';
+export type TerrainEffect = 'none' | 'slow' | 'damage';
 
 export type GamePhase = 'menu' | 'build' | 'combat' | 'wave_clear' | 'victory' | 'defeat';
 

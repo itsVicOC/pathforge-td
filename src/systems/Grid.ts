@@ -1,4 +1,4 @@
-import type { CellType, GridCell, Vec2 } from '../types';
+import type { CellType, GridCell, TerrainEffect, Vec2 } from '../types';
 
 export class Grid {
   private cells: GridCell[][] = [];
@@ -39,14 +39,22 @@ export class Grid {
   public isWalkable(x: number, y: number): boolean {
     const cell = this.getCell(x, y);
     if (!cell) return false;
-    if (cell.type === 'water' || cell.type === 'obstacle') return false;
+    if (cell.type === 'water' || cell.type === 'obstacle' || cell.type === 'lava') return false;
     if (cell.type === 'buildable' && cell.towerId) return false;
     return true;
   }
 
   public isBuildable(x: number, y: number): boolean {
     const cell = this.getCell(x, y);
-    return !!cell && cell.type === 'buildable' && !cell.towerId;
+    return !!cell && (cell.type === 'buildable' || cell.type === 'forest') && !cell.towerId;
+  }
+
+  public getTerrainEffect(x: number, y: number): TerrainEffect {
+    const cell = this.getCell(x, y);
+    if (!cell) return 'none';
+    if (cell.type === 'lava') return 'damage';
+    if (cell.type === 'forest') return 'slow';
+    return 'none';
   }
 
   public hasTower(x: number, y: number): boolean {

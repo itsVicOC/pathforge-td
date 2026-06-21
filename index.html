@@ -147,7 +147,7 @@
         <h1>PathForge TD</h1>
         <p>Shape the Maze. Defend the Core.</p>
         <button class="btn" id="btn-campaign">战役模式</button>
-        <button class="btn secondary" id="btn-settings">设置</button>
+        <button class="btn secondary" id="btn-stats">统计与成就</button>
       </div>
 
       <!-- 关卡选择 -->
@@ -163,6 +163,16 @@
         <button class="btn" id="btn-resume">继续游戏</button>
         <button class="btn secondary" id="btn-restart">重新开始</button>
         <button class="btn secondary" id="btn-quit">退出到主菜单</button>
+      </div>
+
+      <!-- 统计与成就 -->
+      <div id="stats-screen" class="screen">
+        <h2>统计与成就</h2>
+        <div id="stats-content" style="max-height: 320px; overflow-y: auto; width: 80%;">
+          <div id="stats-summary" style="margin-bottom: 20px; color: #aaa;"></div>
+          <div id="achievements-list"></div>
+        </div>
+        <button class="btn secondary" id="btn-back-main-stats">返回主菜单</button>
       </div>
 
       <!-- 游戏结束 -->
