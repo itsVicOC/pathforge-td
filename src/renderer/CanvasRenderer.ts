@@ -4,7 +4,7 @@ import type { Tower } from '../entities/Tower';
 import type { Enemy } from '../entities/Enemy';
 import type { Projectile } from '../entities/Projectile';
 import type { Particle, HitEffect, BeamEffect } from '../entities/Effect';
-import type { Vec2 } from '../types';
+import type { TowerConfig, Vec2 } from '../types';
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -81,11 +81,23 @@ export class CanvasRenderer {
         this.ctx.fillRect(x + 10, y + 8, 2, 6);
         this.ctx.fillRect(x + 20, y + 16, 2, 5);
         break;
+      case 'spawn':
+        this.ctx.fillStyle = 'rgba(255,255,255,0.16)';
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + 8, y + 8);
+        this.ctx.lineTo(x + 24, y + 16);
+        this.ctx.lineTo(x + 8, y + 24);
+        this.ctx.closePath();
+        this.ctx.fill();
+        break;
       case 'core':
         // 核心脉冲效果
         const pulse = 0.6 + Math.sin(Date.now() / 300) * 0.2;
         this.ctx.fillStyle = `rgba(255, 215, 0, ${pulse * 0.3})`;
         this.ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x + 8, y + 8, TILE_SIZE - 16, TILE_SIZE - 16);
         break;
     }
   }
@@ -105,49 +117,187 @@ export class CanvasRenderer {
   }
 
   public drawPaths(paths: Map<Vec2, Vec2[]>): void {
-    this.ctx.strokeStyle = COLORS.pathPreview;
     this.ctx.lineWidth = 5;
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
     this.ctx.setLineDash([8, 5]);
-    this.ctx.shadowColor = 'rgba(255, 213, 79, 0.4)';
     this.ctx.shadowBlur = 8;
 
     for (const path of paths.values()) {
       if (path.length < 2) continue;
+      const color = this.getPathPreviewColor(path.length);
+      this.ctx.strokeStyle = color;
+      this.ctx.shadowColor = color;
       this.ctx.beginPath();
       this.ctx.moveTo(path[0].x * TILE_SIZE + TILE_SIZE / 2, path[0].y * TILE_SIZE + TILE_SIZE / 2);
       for (let i = 1; i < path.length; i++) {
         this.ctx.lineTo(path[i].x * TILE_SIZE + TILE_SIZE / 2, path[i].y * TILE_SIZE + TILE_SIZE / 2);
       }
       this.ctx.stroke();
+
+      this.drawPathMarkers(path, color);
     }
 
     this.ctx.shadowBlur = 0;
     this.ctx.setLineDash([]);
   }
 
-  public drawHover(cell?: Vec2, selectedTowerId?: string): void {
+  public drawFlightPaths(spawns: Vec2[], cores: Vec2[]): void {
+    if (spawns.length === 0 || cores.length === 0) return;
+
+    this.ctx.save();
+    this.ctx.lineWidth = 3;
+    this.ctx.lineCap = 'round';
+    this.ctx.setLineDash([3, 8]);
+    this.ctx.strokeStyle = 'rgba(79, 195, 247, 0.72)';
+    this.ctx.shadowColor = 'rgba(79, 195, 247, 0.7)';
+    this.ctx.shadowBlur = 10;
+
+    for (const spawn of spawns) {
+      const core = this.getNearestCore(spawn, cores);
+      const sx = spawn.x * TILE_SIZE + TILE_SIZE / 2;
+      const sy = spawn.y * TILE_SIZE + TILE_SIZE / 2;
+      const ex = core.x * TILE_SIZE + TILE_SIZE / 2;
+      const ey = core.y * TILE_SIZE + TILE_SIZE / 2;
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(sx, sy);
+      this.ctx.lineTo(ex, ey);
+      this.ctx.stroke();
+
+      this.drawFlightMarker((sx + ex) / 2, (sy + ey) / 2);
+    }
+
+    this.ctx.restore();
+  }
+
+  private getNearestCore(spawn: Vec2, cores: Vec2[]): Vec2 {
+    return cores.reduce((best, core) => {
+      const bestDist = Math.abs(best.x - spawn.x) + Math.abs(best.y - spawn.y);
+      const nextDist = Math.abs(core.x - spawn.x) + Math.abs(core.y - spawn.y);
+      return nextDist < bestDist ? core : best;
+    }, cores[0]);
+  }
+
+  private drawFlightMarker(x: number, y: number): void {
+    const label = '飞行';
+    this.ctx.setLineDash([]);
+    this.ctx.shadowBlur = 0;
+    this.ctx.font = 'bold 11px "Courier New", monospace';
+    const textWidth = this.ctx.measureText(label).width;
+    this.drawRoundRect(x - textWidth / 2 - 6, y - 20, textWidth + 12, 16, 5, 'rgba(8, 24, 34, 0.86)', 'rgba(79, 195, 247, 0.8)');
+    this.drawText(label, x, y - 8, {
+      font: 'bold 11px "Courier New", monospace',
+      align: 'center',
+      color: '#b3e5fc',
+    });
+    this.ctx.setLineDash([3, 8]);
+    this.ctx.shadowBlur = 10;
+  }
+
+  private getPathPreviewColor(length: number): string {
+    if (length >= 46) return 'rgba(102, 187, 106, 0.65)';
+    if (length >= 30) return COLORS.pathPreview;
+    return 'rgba(239, 83, 80, 0.6)';
+  }
+
+  private drawPathMarkers(path: Vec2[], color: string): void {
+    const start = path[0];
+    const end = path[path.length - 1];
+    const sx = start.x * TILE_SIZE + TILE_SIZE / 2;
+    const sy = start.y * TILE_SIZE + TILE_SIZE / 2;
+    const ex = end.x * TILE_SIZE + TILE_SIZE / 2;
+    const ey = end.y * TILE_SIZE + TILE_SIZE / 2;
+    const mid = path[Math.floor(path.length / 2)];
+    const mx = mid.x * TILE_SIZE + TILE_SIZE / 2;
+    const my = mid.y * TILE_SIZE + TILE_SIZE / 2;
+
+    this.ctx.setLineDash([]);
+    this.ctx.shadowBlur = 0;
+
+    this.ctx.fillStyle = color;
+    this.ctx.beginPath();
+    this.ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.arc(ex, ey, 8, 0, Math.PI * 2);
+    this.ctx.stroke();
+
+    const label = `${path.length}格`;
+    this.ctx.font = 'bold 11px "Courier New", monospace';
+    const textWidth = this.ctx.measureText(label).width;
+    this.drawRoundRect(mx - textWidth / 2 - 5, my - 20, textWidth + 10, 16, 5, 'rgba(10,14,21,0.82)', color);
+    this.drawText(label, mx, my - 8, {
+      font: 'bold 11px "Courier New", monospace',
+      align: 'center',
+      color: '#eef9f3',
+    });
+
+    this.ctx.setLineDash([8, 5]);
+    this.ctx.shadowBlur = 8;
+  }
+
+  public drawHover(cell?: Vec2, selectedTower?: TowerConfig, canPlace = false): void {
     if (!cell) return;
 
     const x = cell.x * TILE_SIZE;
     const y = cell.y * TILE_SIZE;
+    const cx = x + TILE_SIZE / 2;
+    const cy = y + TILE_SIZE / 2;
+
+    if (selectedTower) {
+      this.drawPlacementRange(cx, cy, selectedTower, canPlace);
+    }
 
     // 外发光
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    this.ctx.lineWidth = 2;
-    this.ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+    this.ctx.strokeStyle = selectedTower
+      ? (canPlace ? 'rgba(109, 214, 166, 0.95)' : 'rgba(239, 83, 80, 0.95)')
+      : 'rgba(255, 255, 255, 0.8)';
+    this.ctx.lineWidth = selectedTower ? 3 : 2;
+    this.ctx.shadowColor = selectedTower
+      ? (canPlace ? 'rgba(109, 214, 166, 0.55)' : 'rgba(239, 83, 80, 0.55)')
+      : 'rgba(255, 255, 255, 0.5)';
     this.ctx.shadowBlur = 8;
     this.ctx.strokeRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     this.ctx.shadowBlur = 0;
 
-    if (selectedTowerId) {
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    if (selectedTower) {
+      this.ctx.fillStyle = canPlace ? 'rgba(109, 214, 166, 0.16)' : 'rgba(239, 83, 80, 0.16)';
       this.ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
     }
   }
 
+  private drawPlacementRange(cx: number, cy: number, config: TowerConfig, canPlace: boolean): void {
+    const range = config.range * TILE_SIZE;
+    const color = canPlace ? config.color : COLORS.uiDanger;
+
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy, range, 0, Math.PI * 2);
+    this.ctx.fillStyle = this.withAlpha(color, 0.14);
+    this.ctx.fill();
+    this.ctx.strokeStyle = this.withAlpha(color, 0.72);
+    this.ctx.lineWidth = 2;
+    this.ctx.setLineDash([8, 5]);
+    this.ctx.stroke();
+
+    this.ctx.setLineDash([]);
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy, Math.max(7, TILE_SIZE * 0.22), 0, Math.PI * 2);
+    this.ctx.fillStyle = this.withAlpha(color, 0.9);
+    this.ctx.fill();
+    this.ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    this.ctx.lineWidth = 1;
+    this.ctx.stroke();
+    this.ctx.restore();
+  }
+
   public drawTower(tower: Tower): void {
+    this.ctx.save();
+
     const cx = tower.x * TILE_SIZE + TILE_SIZE / 2;
     const cy = tower.y * TILE_SIZE + TILE_SIZE / 2;
     const size = TILE_SIZE - 8;
@@ -160,7 +310,7 @@ export class CanvasRenderer {
       const scale = Math.min(progress, 1);
       this.ctx.globalAlpha = 0.4 + scale * 0.6;
       this.drawTowerShape(tower, cx, cy, size * scale);
-      this.ctx.globalAlpha = 1;
+      this.ctx.restore();
       return;
     }
 
@@ -183,75 +333,184 @@ export class CanvasRenderer {
     this.ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     this.ctx.lineWidth = 1;
     this.ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
+
+    if (tower.disabledTime > 0) {
+      this.ctx.fillStyle = 'rgba(255, 235, 59, 0.28)';
+      this.ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+      this.ctx.fillStyle = '#ffeb3b';
+      this.ctx.font = 'bold 12px "Courier New", monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText('!', cx, cy);
+    }
+
+    this.ctx.restore();
   }
 
   private drawTowerShape(tower: Tower, cx: number, cy: number, size: number): void {
-    const color = tower.config.color;
+    this.drawTowerShapeById(tower.config.id, tower.config.color, cx, cy, size, true);
+  }
+
+  private drawTowerShapeById(towerId: string, color: string, cx: number, cy: number, size: number, drawBase: boolean): void {
+    if (size < 18) {
+      const tinySize = Math.max(3, size);
+      this.ctx.fillStyle = color;
+      this.ctx.fillRect(cx - tinySize / 2, cy - tinySize / 2, tinySize, tinySize);
+      return;
+    }
+
     const half = size / 2;
+    const dark = this.darken(color, 42);
+    const light = this.lighten(color, 38);
+
+    if (drawBase) {
+      this.ctx.fillStyle = 'rgba(12, 16, 22, 0.62)';
+      this.ctx.fillRect(cx - half + 2, cy + half - 5, size - 4, 5);
+    }
 
     this.ctx.fillStyle = color;
-    this.ctx.strokeStyle = this.darken(color, 30);
+    this.ctx.strokeStyle = dark;
     this.ctx.lineWidth = 1;
 
-    switch (tower.config.id) {
+    switch (towerId) {
       case 'archer':
-        // 三角形塔顶
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(cx - half + 6, cy - 2, size - 12, half + 2);
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(cx - half + 8, cy, size - 16, half - 1);
+        this.ctx.fillStyle = light;
+        this.ctx.fillRect(cx - 2, cy + 3, 4, 7);
         this.ctx.beginPath();
-        this.ctx.moveTo(cx, cy - half + 2);
-        this.ctx.lineTo(cx + half - 2, cy + half - 2);
-        this.ctx.lineTo(cx - half + 2, cy + half - 2);
+        this.ctx.moveTo(cx, cy - half + 1);
+        this.ctx.lineTo(cx + half - 2, cy - 2);
+        this.ctx.lineTo(cx - half + 2, cy - 2);
         this.ctx.closePath();
+        this.ctx.fillStyle = color;
         this.ctx.fill();
+        this.ctx.stroke();
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx - 6, cy - 6);
+        this.ctx.lineTo(cx + 6, cy - 6);
         this.ctx.stroke();
         break;
       case 'cannon':
-        // 圆形炮塔
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(cx - half + 4, cy + 2, size - 8, half - 2);
+        this.ctx.fillStyle = color;
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, half - 2, 0, Math.PI * 2);
+        this.ctx.arc(cx, cy, half - 4, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.stroke();
-        // 炮管
-        this.ctx.fillStyle = this.darken(color, 40);
-        this.ctx.fillRect(cx - 3, cy - half + 4, 6, half);
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(cx - 4, cy - half + 3, 8, half + 1);
+        this.ctx.fillStyle = '#222833';
+        this.ctx.fillRect(cx - 2, cy - half + 1, 4, 7);
+        this.ctx.fillStyle = light;
+        this.ctx.beginPath();
+        this.ctx.arc(cx - 4, cy - 4, 3, 0, Math.PI * 2);
+        this.ctx.fill();
         break;
       case 'ice':
-        // 菱形
-        this.ctx.beginPath();
-        this.ctx.moveTo(cx, cy - half + 2);
-        this.ctx.lineTo(cx + half - 2, cy);
-        this.ctx.lineTo(cx, cy + half - 2);
-        this.ctx.lineTo(cx - half + 2, cy);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.stroke();
-        break;
-      case 'lightning':
-        // 尖锐塔
+        this.ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        this.ctx.fillRect(cx - half + 6, cy + half - 6, size - 12, 4);
         this.ctx.beginPath();
         this.ctx.moveTo(cx, cy - half + 1);
-        this.ctx.lineTo(cx + half - 3, cy + half - 2);
-        this.ctx.lineTo(cx, cy + half - 6);
-        this.ctx.lineTo(cx - half + 3, cy + half - 2);
+        this.ctx.lineTo(cx + half - 3, cy - 2);
+        this.ctx.lineTo(cx + 4, cy + half - 1);
+        this.ctx.lineTo(cx - half + 5, cy + 3);
+        this.ctx.closePath();
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
+        this.ctx.stroke();
+        this.ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx - 1, cy - half + 5);
+        this.ctx.lineTo(cx + 5, cy - 2);
+        this.ctx.lineTo(cx, cy + half - 5);
+        this.ctx.lineTo(cx - 3, cy);
+        this.ctx.closePath();
+        this.ctx.fill();
+        break;
+      case 'lightning':
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(cx - half + 6, cy + 2, size - 12, half - 2);
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx + 2, cy - half + 1);
+        this.ctx.lineTo(cx + half - 3, cy - 2);
+        this.ctx.lineTo(cx + 3, cy + 1);
+        this.ctx.lineTo(cx + 7, cy + half - 1);
+        this.ctx.lineTo(cx - half + 2, cy + 1);
+        this.ctx.lineTo(cx - 1, cy - 2);
         this.ctx.closePath();
         this.ctx.fill();
         this.ctx.stroke();
+        this.ctx.fillStyle = '#fff59d';
+        this.ctx.fillRect(cx - 1, cy - 8, 3, 8);
         break;
       case 'poison':
-        // 六边形
-        this.drawPolygon(cx, cy, half - 2, 6);
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(cx - half + 5, cy - 1, size - 10, half + 2);
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.ellipse(cx, cy + 2, half - 4, half - 7, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.stroke();
+        this.ctx.fillStyle = light;
+        this.ctx.beginPath();
+        this.ctx.arc(cx - 6, cy - 8, 3, 0, Math.PI * 2);
+        this.ctx.arc(cx + 4, cy - 11, 2, 0, Math.PI * 2);
+        this.ctx.arc(cx + 8, cy - 5, 2, 0, Math.PI * 2);
+        this.ctx.fill();
+        break;
+      case 'sniper':
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(cx - half + 4, cy - half + 4, size - 8, size - 8);
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(cx - half + 6, cy - half + 6, size - 12, size - 12);
+        this.ctx.strokeStyle = dark;
+        this.ctx.strokeRect(cx - half + 6, cy - half + 6, size - 12, size - 12);
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, half - 8, 0, Math.PI * 2);
+        this.ctx.moveTo(cx - half + 7, cy);
+        this.ctx.lineTo(cx + half - 7, cy);
+        this.ctx.moveTo(cx, cy - half + 7);
+        this.ctx.lineTo(cx, cy + half - 7);
+        this.ctx.stroke();
         break;
       case 'support':
-        // 星形/加号
-        this.ctx.fillRect(cx - half + 3, cy - 3, size - 6, 6);
-        this.ctx.fillRect(cx - 3, cy - half + 3, 6, size - 6);
+        this.ctx.fillStyle = dark;
+        this.drawPolygon(cx, cy, half - 3, 8);
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, half - 7, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = dark;
+        this.ctx.stroke();
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx - half + 8, cy);
+        this.ctx.lineTo(cx + half - 8, cy);
+        this.ctx.moveTo(cx, cy - half + 8);
+        this.ctx.lineTo(cx, cy + half - 8);
+        this.ctx.stroke();
         break;
       case 'barracks':
-        // 方形堡垒
-        this.ctx.fillRect(cx - half + 2, cy - half + 2, size - 4, size - 4);
-        this.ctx.strokeRect(cx - half + 2, cy - half + 2, size - 4, size - 4);
-        // 小门
-        this.ctx.fillStyle = this.darken(color, 40);
+        this.ctx.fillStyle = dark;
+        this.ctx.fillRect(cx - half + 3, cy - half + 4, size - 6, size - 4);
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(cx - half + 5, cy - half + 2, size - 10, size - 8);
+        this.ctx.fillStyle = dark;
+        for (let i = 0; i < 3; i++) {
+          this.ctx.fillRect(cx - half + 6 + i * 8, cy - half + 1, 5, 5);
+        }
         this.ctx.fillRect(cx - 4, cy + 2, 8, half - 4);
+        this.ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        this.ctx.fillRect(cx - half + 8, cy - 3, 4, 4);
+        this.ctx.fillRect(cx + half - 12, cy - 3, 4, 4);
         break;
       default:
         this.ctx.fillRect(cx - half + 2, cy - half + 2, size - 4, size - 4);
@@ -279,6 +538,23 @@ export class CanvasRenderer {
     const g = Math.max(0, parseInt(hex.slice(2, 4), 16) - amount);
     const b = Math.max(0, parseInt(hex.slice(4, 6), 16) - amount);
     return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  private lighten(color: string, amount: number): string {
+    const hex = color.replace('#', '');
+    const r = Math.min(255, parseInt(hex.slice(0, 2), 16) + amount);
+    const g = Math.min(255, parseInt(hex.slice(2, 4), 16) + amount);
+    const b = Math.min(255, parseInt(hex.slice(4, 6), 16) + amount);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  private withAlpha(color: string, alpha: number): string {
+    if (!color.startsWith('#')) return color;
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
   public drawRangeIndicator(tower: Tower): void {
@@ -358,7 +634,8 @@ export class CanvasRenderer {
     let iconX = x - radius - 4;
     for (const effect of enemy.activeEffects.keys()) {
       this.ctx.fillStyle = effect === 'slow' || effect === 'terrainSlow' ? '#00bcd4' :
-                           effect === 'stun' ? '#ffeb3b' : '#9e9e9e';
+                           effect === 'stun' ? '#ffeb3b' :
+                           effect === 'poison' ? '#4caf50' : '#9e9e9e';
       this.ctx.fillRect(iconX, y - radius - 4, 3, 3);
       iconX += 4;
     }
@@ -367,6 +644,34 @@ export class CanvasRenderer {
   public drawRect(x: number, y: number, w: number, h: number, color: string): void {
     this.ctx.fillStyle = color;
     this.ctx.fillRect(x, y, w, h);
+  }
+
+  public drawRoundRect(x: number, y: number, w: number, h: number, radius: number, fill: string | CanvasGradient, stroke?: string): void {
+    const r = Math.min(radius, w / 2, h / 2);
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + r, y);
+    this.ctx.lineTo(x + w - r, y);
+    this.ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.ctx.lineTo(x + w, y + h - r);
+    this.ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.ctx.lineTo(x + r, y + h);
+    this.ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.ctx.lineTo(x, y + r);
+    this.ctx.quadraticCurveTo(x, y, x + r, y);
+    this.ctx.closePath();
+    this.ctx.fillStyle = fill;
+    this.ctx.fill();
+    if (stroke) {
+      this.ctx.strokeStyle = stroke;
+      this.ctx.lineWidth = 1;
+      this.ctx.stroke();
+    }
+  }
+
+  public drawTowerIcon(towerId: string, color: string, cx: number, cy: number, size: number): void {
+    this.ctx.save();
+    this.drawTowerShapeById(towerId, color, cx, cy, size, false);
+    this.ctx.restore();
   }
 
   public drawText(text: string, x: number, y: number, options: TextOptions = {}): void {
@@ -394,13 +699,7 @@ export class CanvasRenderer {
       gradient.addColorStop(0, COLORS.uiAccent);
       gradient.addColorStop(1, '#2e7d32');
     }
-    this.ctx.fillStyle = gradient;
-    this.ctx.fillRect(x, y, w, h);
-
-    // 边框
-    this.ctx.strokeStyle = active ? COLORS.uiBorderLight : 'rgba(255,255,255,0.2)';
-    this.ctx.lineWidth = 1;
-    this.ctx.strokeRect(x, y, w, h);
+    this.drawRoundRect(x, y, w, h, 6, gradient, active ? COLORS.uiBorderLight : 'rgba(255,255,255,0.22)');
 
     // 文字
     this.ctx.fillStyle = COLORS.text;

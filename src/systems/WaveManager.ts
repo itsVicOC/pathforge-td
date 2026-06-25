@@ -88,7 +88,7 @@ export class WaveManager {
 
     // 高级敌人
     if (waveNumber >= 5) {
-      const advanced = ['shielder', 'ghost', 'fireElemental'];
+      const advanced = ['shielder', 'ghost', 'fireElemental', 'healer', 'bomber'];
       groups.push({
         type: advanced[waveNumber % advanced.length],
         count: Math.floor(2 + waveNumber * 0.25),
@@ -156,6 +156,12 @@ export class WaveManager {
   public getTotalWaves(): number { return this.waves.length; }
   public isWaveInProgress(): boolean { return this.waveInProgress; }
   public getCurrentWaveConfig(): WaveConfig | undefined {
+    return this.waves[this.currentWave];
+  }
+
+  public getNextWavePreview(): WaveConfig | undefined {
+    if (this.waveInProgress) return undefined;
+    if (this.endless) return this.generateEndlessWave(this.currentWave + 1);
     return this.waves[this.currentWave];
   }
 }

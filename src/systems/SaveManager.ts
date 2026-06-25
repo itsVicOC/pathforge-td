@@ -72,9 +72,12 @@ export class SaveManager {
     this.save();
   }
 
-  public updateStats(stats: { totalKills?: number; highestWave?: number }): void {
+  public updateStats(stats: { totalKills?: number; totalBossKills?: number; highestWave?: number }): void {
     if (stats.totalKills !== undefined) {
       this.data.stats.totalKills += stats.totalKills;
+    }
+    if (stats.totalBossKills !== undefined) {
+      this.data.stats.totalBossKills += stats.totalBossKills;
     }
     if (stats.highestWave !== undefined && stats.highestWave > this.data.stats.highestWave) {
       this.data.stats.highestWave = stats.highestWave;
@@ -112,6 +115,7 @@ export class SaveManager {
       },
       stats: {
         totalKills: 0,
+        totalBossKills: 0,
         highestWave: 0,
       },
     };
@@ -122,7 +126,8 @@ export class SaveManager {
     if (!data.player) data.player = { level: 1, xp: 0 };
     if (!data.progress) data.progress = { campaign: {}, unlocks: [], achievements: [] };
     if (!data.settings) data.settings = { masterVolume: 1, musicVolume: 0.4, sfxVolume: 0.7 };
-    if (!data.stats) data.stats = { totalKills: 0, highestWave: 0 };
+    if (!data.stats) data.stats = { totalKills: 0, totalBossKills: 0, highestWave: 0 };
+    if (data.stats.totalBossKills === undefined) data.stats.totalBossKills = 0;
     return data as SaveData;
   }
 

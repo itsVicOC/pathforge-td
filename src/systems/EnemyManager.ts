@@ -11,7 +11,39 @@ export class EnemyManager {
   constructor(
     private pathfinder: Pathfinder,
     private grid: Grid,
-  ) {}
+  ) {
+    this.bindEvents();
+  }
+
+  private bindEvents(): void {
+    eventBus.on('enemy:healPulse', ({ source, x, y, radius, amount }: {
+      source: Enemy;
+      x: number;
+      y: number;
+      radius: number;
+      amount: number;
+    }) => {
+      for (const enemy of this.enemies) {
+        if (enemy === source || enemy.hp <= 0 || enemy.reachedCore) continue;
+        const dist = Math.hypot(enemy.x - x, enemy.y - y);
+        if (dist <= radius) {
+          enemy.heal(amount);
+          eventBus.emit('effect:hit', { x: enemy.x, y: enemy.y, color: '#66bb6a' });
+        }
+      }
+    });
+
+    eventBus.on('enemy:killed', ({ enemy }: { enemy: Enemy }) => {
+      if (enemy.config.id === 'bomber') {
+        eventBus.emit('enemy:bomberExploded', {
+          x: enemy.x,
+          y: enemy.y,
+          radius: 1.8,
+          towerStunDuration: 2.0,
+        });
+      }
+    });
+  }
 
   public clear(): void {
     this.enemies = [];

@@ -29,20 +29,28 @@ export class TowerManager {
   }
 
   public placeTower(x: number, y: number, towerId: string): boolean {
-    if (!this.grid.isBuildable(x, y)) return false;
-    if (!this.pathfinder.validatePlacement(x, y)) return false;
-
     const config = TOWER_CONFIGS[towerId];
-    if (!config) return false;
-    if (!this.economy.spend(config.cost)) return false;
+    if (!config) return this.failPlacement('unknown_tower');
+    if (!this.grid.isBuildable(x, y)) return this.failPlacement('invalid_cell');
+    if (!this.pathfinder.validatePlacement(x, y)) return this.failPlacement('blocked_path');
+    if (!this.economy.spend(config.cost)) return this.failPlacement('not_enough_gold');
 
     const tower = new Tower(x, y, config);
+    if (!this.grid.setTower(x, y, tower.id)) {
+      this.economy.refund(config.cost);
+      return this.failPlacement('invalid_cell');
+    }
+
     this.towers.push(tower);
-    this.grid.setTower(x, y, tower.id);
     this.pathfinder.invalidate();
 
     eventBus.emit('tower:placed', { x, y, towerId, tower });
     return true;
+  }
+
+  private failPlacement(reason: string): false {
+    eventBus.emit('tower:placementFailed', { reason });
+    return false;
   }
 
   public upgradeTower(tower: Tower): boolean {
@@ -55,8 +63,8 @@ export class TowerManager {
     return true;
   }
 
-  public sellTower(tower: Tower): void {
-    const refund = tower.getSellValue();
+  public sellTower(tower: Tower, refundRate = 0.7): void {
+    const refund = tower.getSellValue(refundRate);
     this.grid.removeTower(tower.x, tower.y);
     this.towers = this.towers.filter(t => t.id !== tower.id);
     this.economy.refund(refund);
@@ -87,6 +95,18 @@ export class TowerManager {
         }
       }
     }
+  }
+
+  public stunTowersInRange(x: number, y: number, radius: number, duration: number): number {
+    let affected = 0;
+    for (const tower of this.towers) {
+      const dist = Math.hypot((tower.x + 0.5) - x, (tower.y + 0.5) - y);
+      if (dist <= radius) {
+        tower.stun(duration);
+        affected++;
+      }
+    }
+    return affected;
   }
 
   public getTowerConfig(id: string): TowerConfig | undefined {

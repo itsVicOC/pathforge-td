@@ -13,6 +13,8 @@ export class Enemy {
   public activeEffects: Map<string, EffectSnapshot> = new Map();
   public reachedCore = false;
   public skillCooldown = 0;
+  private killed = false;
+  private supportCooldown = 2;
 
   constructor(config: EnemyConfig, path: Vec2[]) {
     this.config = config;
@@ -28,17 +30,35 @@ export class Enemy {
     this.updateEffects(dt);
     this.move(dt);
     this.updateBossSkill(dt);
+    this.updateSupportSkill(dt);
+  }
+
+  private updateSupportSkill(dt: number): void {
+    if (this.config.id !== 'healer' || this.reachedCore || this.killed) return;
+
+    this.supportCooldown -= dt;
+    if (this.supportCooldown > 0) return;
+
+    this.supportCooldown = 2.4;
+    eventBus.emit('enemy:healPulse', {
+      source: this,
+      x: this.x,
+      y: this.y,
+      radius: 2.5,
+      amount: 18,
+    });
   }
 
   private updateBossSkill(dt: number): void {
-    if (!this.config.bossSkill || this.reachedCore) return;
+    const skill = this.getSkillType();
+    if (!skill || this.reachedCore) return;
 
     this.skillCooldown -= dt;
     if (this.skillCooldown > 0) return;
 
     this.skillCooldown = this.getSkillInterval();
 
-    switch (this.config.bossSkill) {
+    switch (skill) {
       case 'summon':
         eventBus.emit('boss:summon', { x: this.x, y: this.y, count: 3 });
         break;
@@ -55,13 +75,17 @@ export class Enemy {
   }
 
   private getSkillInterval(): number {
-    switch (this.config.bossSkill) {
+    switch (this.getSkillType()) {
       case 'summon': return 5;
       case 'burningGround': return 4;
       case 'spawnFlyers': return 5;
       case 'dash': return 6;
       default: return 5;
     }
+  }
+
+  private getSkillType(): import('../types').BossSkillType | undefined {
+    return this.config.bossSkill ?? this.config.ability;
   }
 
   private move(dt: number): void {
@@ -113,12 +137,12 @@ export class Enemy {
   }
 
   public takeDamage(amount: number, type: DamageType): void {
+    if (this.killed) return;
+
     const actual = this.calculateDamage(amount, type);
     this.hp -= actual;
     eventBus.emit('enemy:damaged', { enemy: this, damage: actual });
-    if (this.hp <= 0) {
-      eventBus.emit('enemy:killed', { enemy: this, reward: this.config.reward });
-    }
+    this.markKilledIfNeeded();
   }
 
   private calculateDamage(amount: number, type: DamageType): number {
@@ -132,6 +156,7 @@ export class Enemy {
       effect.duration -= dt;
       if (effect.tickDamage) {
         this.hp -= effect.tickDamage * dt;
+        this.markKilledIfNeeded();
       }
       if (effect.duration <= 0) {
         this.activeEffects.delete(key);
@@ -140,7 +165,13 @@ export class Enemy {
   }
 
   public applyEffect(effect: EffectSnapshot): void {
+    if (this.killed) return;
     this.activeEffects.set(effect.type, effect);
+  }
+
+  public heal(amount: number): void {
+    if (this.killed || this.reachedCore || this.hp <= 0) return;
+    this.hp = Math.min(this.maxHp, this.hp + amount);
   }
 
   public applyTerrainEffect(terrain: TerrainEffect, dt: number): void {
@@ -148,8 +179,15 @@ export class Enemy {
       this.activeEffects.set('terrainSlow', { type: 'terrainSlow', duration: 0.2 });
     } else if (terrain === 'damage') {
       this.hp -= 5 * dt;
+      this.markKilledIfNeeded();
       eventBus.emit('enemy:damaged', { enemy: this, damage: 5 * dt });
     }
+  }
+
+  private markKilledIfNeeded(): void {
+    if (this.killed || this.hp > 0) return;
+    this.killed = true;
+    eventBus.emit('enemy:killed', { enemy: this, reward: this.config.reward });
   }
 
   public get flying(): boolean { return this.config.flying; }

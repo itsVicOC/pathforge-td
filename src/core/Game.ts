@@ -15,6 +15,7 @@ import { CanvasRenderer } from '../renderer/CanvasRenderer';
 import { UIManager } from '../ui/UIManager';
 import { MenuManager } from '../ui/MenuManager';
 import { LEVEL_CONFIGS } from '../config/levels';
+import { getUnlockedAchievementIds } from '../config/achievements';
 import { AudioManager } from '../audio/AudioManager';
 import { MAX_DELTA_TIME } from '../config/gameConfig';
 import { Enemy } from '../entities/Enemy';
@@ -44,6 +45,8 @@ export class Game {
   private maxPathLength = 0;
   private showPathPreview = true;
   private particleEffects = true;
+  private placementPreviewKey = '';
+  private placementPreviewCanPlace = false;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new CanvasRenderer(canvas);
@@ -124,6 +127,7 @@ export class Game {
     this.state.setTotalWaves(config.waves.length);
     this.state.selectTower(undefined);
     this.state.setPaused(false);
+    this.state.setTimeScale(1);
   }
 
   private bindEvents(): void {
@@ -137,7 +141,11 @@ export class Game {
       }
     });
 
-    eventBus.on('input:hover', (pos: Vec2) => {
+    eventBus.on('input:hover', (pos: Vec2 & { pixelX?: number; pixelY?: number }) => {
+      if (pos.pixelX !== undefined && pos.pixelY !== undefined && this.uiManager.isPointInUI(pos.pixelX, pos.pixelY)) {
+        this.state.setHoveredCell(undefined);
+        return;
+      }
       this.state.setHoveredCell(pos);
     });
 
@@ -153,6 +161,10 @@ export class Game {
       this.audioManager.playSfx('build');
     });
 
+    eventBus.on('tower:placementFailed', () => {
+      this.audioManager.playSfx('error');
+    });
+
     eventBus.on('tower:fire', ({ tower, target, damage, damageType }: {
       tower: import('../entities/Tower').Tower;
       target: Enemy;
@@ -162,6 +174,7 @@ export class Game {
       const pType = tower.config.projectileType;
       if (pType === 'hitscan') {
         target.takeDamage(damage, damageType as any);
+        tower.applyOnHitEffect(target);
         if (this.particleEffects) {
           eventBus.emit('effect:beam', {
             x1: tower.x + 0.5,
@@ -189,7 +202,7 @@ export class Game {
     eventBus.on('enemy:killed', ({ enemy, reward }: { enemy: Enemy; reward: number }) => {
       this.economy.addKillReward(reward);
       this.totalKills++;
-      if (enemy.config.id === 'boss') this.bossKills++;
+      if (enemy.config.bossSkill) this.bossKills++;
       this.audioManager.playSfx('enemyDeath');
     });
 
@@ -225,6 +238,10 @@ export class Game {
       this.state.selectTower(current === towerId ? undefined : towerId);
     });
 
+    eventBus.on('ui:setSpeed', ({ scale }: { scale: number }) => {
+      this.state.setTimeScale(Math.max(1, Math.min(3, scale)));
+    });
+
     // Settings events
     eventBus.on('settings:masterVolume', (v: number) => this.settingsManager.setMasterVolume(v));
     eventBus.on('settings:musicVolume', (v: number) => this.settingsManager.setMusicVolume(v));
@@ -257,6 +274,17 @@ export class Game {
       }
     });
 
+    eventBus.on('enemy:bomberExploded', ({ x, y, radius, towerStunDuration }: {
+      x: number;
+      y: number;
+      radius: number;
+      towerStunDuration: number;
+    }) => {
+      this.towerManager.stunTowersInRange(x, y, radius, towerStunDuration);
+      eventBus.emit('effect:explosion', { x, y, color: '#fdd835', size: radius });
+      this.audioManager.playSfx('cannon');
+    });
+
     // Menu events
     eventBus.on('menu:resume', () => {
       this.state.setPaused(false);
@@ -268,6 +296,10 @@ export class Game {
       } else {
         this.startLevel(this.currentLevelId);
       }
+    });
+
+    eventBus.on('menu:nextLevel', ({ levelId }: { levelId: string }) => {
+      this.startLevel(levelId);
     });
 
     eventBus.on('menu:quit', () => {
@@ -295,13 +327,17 @@ export class Game {
   }
 
   private endGame(victory: boolean): void {
+    const currentPhase = this.state.getState().phase;
+    if (currentPhase === 'victory' || currentPhase === 'defeat') return;
+
     const phase = victory ? 'victory' : 'defeat';
     this.state.setPhase(phase);
     this.audioManager.playSfx(victory ? 'victory' : 'defeat');
 
     if (this.isEndless) {
       const wave = this.waveManager.getCurrentWave();
-      saveManager.updateStats({ highestWave: wave, totalKills: this.totalKills });
+      saveManager.updateStats({ highestWave: wave, totalKills: this.totalKills, totalBossKills: this.bossKills });
+      this.checkAchievements(false, 0);
       this.menuManager.showGameOver(false, { wave, kills: this.totalKills });
       this.menuManager.setSaveData(saveManager.getData());
       return;
@@ -313,16 +349,18 @@ export class Game {
     const lifeRatio = lives / maxLives;
     const stars = victory ? (lifeRatio >= 0.8 ? 3 : lifeRatio >= 0.4 ? 2 : 1) : 0;
 
+    saveManager.updateStats({ totalKills: this.totalKills, totalBossKills: this.bossKills });
+
     if (victory) {
       saveManager.completeLevel(this.currentLevelId, stars);
-      saveManager.updateStats({ totalKills: this.totalKills });
-      this.checkAchievements(true, stars);
-      this.menuManager.setSaveData(saveManager.getData());
     }
+    this.checkAchievements(victory, stars);
+    this.menuManager.setSaveData(saveManager.getData());
 
     this.menuManager.showGameOver(victory, {
       wave: this.waveManager.getCurrentWave(),
       kills: this.totalKills,
+      nextLevelId: victory ? this.getNextLevelId(this.currentLevelId) : undefined,
     });
     eventBus.emit('game:complete', {
       levelId: this.currentLevelId,
@@ -342,15 +380,30 @@ export class Game {
     }
   }
 
-  private checkAchievements(victory: boolean, stars: number): void {
-    if (victory) saveManager.unlockAchievement('first_victory');
-    if (stars >= 3) saveManager.unlockAchievement('perfect_defense');
-    if (this.economy.getTotalEarned() >= 10000) saveManager.unlockAchievement('millionaire');
-    if (this.maxPathLength >= 80) saveManager.unlockAchievement('path_master');
+  private getNextLevelId(levelId: string): string | undefined {
+    const levelIds = Object.keys(LEVEL_CONFIGS);
+    const index = levelIds.indexOf(levelId);
+    if (index < 0 || index >= levelIds.length - 1) return undefined;
+    return levelIds[index + 1];
+  }
 
-    const totalKills = saveManager.getData().stats.totalKills;
-    if (totalKills >= 100) saveManager.unlockAchievement('veteran');
-    if (this.bossKills >= 5) saveManager.unlockAchievement('boss_slayer');
+  private checkAchievements(victory: boolean, stars: number): void {
+    const data = saveManager.getData();
+    const achievementIds = getUnlockedAchievementIds({
+      victory,
+      stars,
+      levelId: this.isEndless ? undefined : this.currentLevelId,
+      totalKills: data.stats.totalKills,
+      totalBossKills: data.stats.totalBossKills,
+      highestWave: data.stats.highestWave,
+      singleRunGold: this.economy.getTotalEarned(),
+      maxPathLength: this.maxPathLength,
+      campaign: data.progress.campaign,
+    });
+
+    for (const achievementId of achievementIds) {
+      saveManager.unlockAchievement(achievementId);
+    }
   }
 
   private handleClick(x: number, y: number, button: number): void {
@@ -399,6 +452,22 @@ export class Game {
       this.state.selectTower('cannon');
     } else if (key === '3') {
       this.state.selectTower('ice');
+    } else if (key === '4') {
+      this.state.selectTower('lightning');
+    } else if (key === '5') {
+      this.state.selectTower('poison');
+    } else if (key === '6') {
+      this.state.selectTower('sniper');
+    } else if (key === '7') {
+      this.state.selectTower('support');
+    } else if (key === '8') {
+      this.state.selectTower('barracks');
+    } else if (key === 'q' || key === 'Q') {
+      this.state.setTimeScale(1);
+    } else if (key === 'w' || key === 'W') {
+      this.state.setTimeScale(2);
+    } else if (key === 'e' || key === 'E') {
+      this.state.setTimeScale(3);
     }
   }
 
@@ -442,8 +511,18 @@ export class Game {
     this.renderer.drawTemporaryEffects(this.grid.getTemporaryEffects());
     if (this.showPathPreview) {
       this.renderer.drawPaths(this.pathfinder.getAllPaths());
+      if (this.nextWaveHasFlyingEnemies()) {
+        this.renderer.drawFlightPaths(this.grid.getSpawns(), this.grid.getCores());
+      }
     }
-    this.renderer.drawHover(this.state.getState().hoveredCell, this.state.getState().selectedTowerId);
+    const state = this.state.getState();
+    const selectedTowerConfig = state.selectedTowerId && (phase === 'build' || phase === 'wave_clear')
+      ? this.towerManager.getTowerConfig(state.selectedTowerId)
+      : undefined;
+    const canPreviewPlace = selectedTowerConfig
+      ? this.canPreviewPlace(state.hoveredCell, selectedTowerConfig.id)
+      : false;
+    this.renderer.drawHover(state.hoveredCell, selectedTowerConfig, canPreviewPlace);
     this.towerManager.getTowers().forEach(t => this.renderer.drawTower(t));
     this.enemyManager.getEnemies().forEach(e => this.renderer.drawEnemy(e));
     this.renderer.drawProjectiles(this.projectileManager.getProjectiles());
@@ -463,4 +542,22 @@ export class Game {
   public getTowerManager(): TowerManager { return this.towerManager; }
   public getWaveManager(): WaveManager { return this.waveManager; }
   public getGrid(): Grid { return this.grid; }
+
+  private canPreviewPlace(cell: Vec2 | undefined, towerId: string): boolean {
+    if (!cell) return false;
+
+    const key = `${towerId}:${cell.x},${cell.y}:${this.towerManager.getTowers().length}`;
+    if (this.placementPreviewKey === key) return this.placementPreviewCanPlace;
+
+    this.placementPreviewKey = key;
+    this.placementPreviewCanPlace = this.grid.isBuildable(cell.x, cell.y)
+      && this.pathfinder.validatePlacement(cell.x, cell.y);
+    return this.placementPreviewCanPlace;
+  }
+
+  private nextWaveHasFlyingEnemies(): boolean {
+    const wave = this.waveManager.getNextWavePreview();
+    if (!wave) return false;
+    return wave.groups.some(group => this.enemyManager.getConfig(group.type)?.flying);
+  }
 }

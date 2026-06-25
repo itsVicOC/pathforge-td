@@ -36,11 +36,10 @@ export class ProjectileManager {
   public update(dt: number, enemies: Enemy[]): void {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
-      const stillFlying = p.update(dt);
+      const result = p.update(dt);
 
       if (!p.active) {
-        if (!stillFlying) {
-          // 命中
+        if (result === 'hit') {
           this.onHit(p, enemies);
         }
         this.projectiles.splice(i, 1);
@@ -58,6 +57,7 @@ export class ProjectileManager {
         const dist = Math.hypot(enemy.x - pos.x, enemy.y - pos.y);
         if (dist <= radius) {
           enemy.takeDamage(projectile.damage, projectile.damageType);
+          projectile.sourceTower.applyOnHitEffect(enemy);
           if (isBarracks) {
             enemy.applyEffect({ type: 'stun', duration: 0.5 });
           }
@@ -69,6 +69,7 @@ export class ProjectileManager {
     } else {
       if (projectile.target.hp > 0) {
         projectile.target.takeDamage(projectile.damage, projectile.damageType);
+        projectile.sourceTower.applyOnHitEffect(projectile.target);
       }
       eventBus.emit('effect:hit', { x: pos.x, y: pos.y, color: '#fff' });
     }

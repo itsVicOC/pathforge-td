@@ -31,8 +31,9 @@ export class InputManager {
   };
 
   private onPointerMove = (e: PointerEvent): void => {
-    const pos = this.getGridPosition(e);
-    eventBus.emit('input:hover', pos);
+    const gridPos = this.getGridPosition(e);
+    const pixelPos = this.getPixelPosition(e);
+    eventBus.emit('input:hover', { ...gridPos, pixelX: pixelPos.x, pixelY: pixelPos.y });
   };
 
   private onPointerUp = (e: PointerEvent): void => {

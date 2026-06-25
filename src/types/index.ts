@@ -32,6 +32,10 @@ export interface TowerConfig {
   targetFlags: TargetFlag[];
   color: string;
   upgrades: UpgradeConfig[];
+  role?: string;
+  description?: string;
+  special?: string;
+  usage?: string;
 }
 
 export interface UpgradeConfig {
@@ -54,6 +58,7 @@ export interface EnemyConfig {
   color: string;
   radius: number;
   bossSkill?: BossSkillType;
+  ability?: BossSkillType;
 }
 
 export type BossSkillType = 'summon' | 'burningGround' | 'dash' | 'spawnFlyers';
@@ -87,6 +92,7 @@ export interface LevelConfig {
 export type DamageType = 'physical' | 'fire' | 'ice' | 'lightning' | 'poison' | 'true';
 export type ProjectileType = 'projectile' | 'hitscan' | 'aoe' | 'beam';
 export type TargetFlag = 'ground' | 'flying';
+export type TargetPriority = 'first' | 'last' | 'strong' | 'weak' | 'nearest';
 export type TerrainEffect = 'none' | 'slow' | 'damage';
 
 export type GamePhase = 'menu' | 'build' | 'combat' | 'wave_clear' | 'victory' | 'defeat';
@@ -120,6 +126,7 @@ export interface SaveData {
   };
   stats: {
     totalKills: number;
+    totalBossKills: number;
     highestWave: number;
   };
 }

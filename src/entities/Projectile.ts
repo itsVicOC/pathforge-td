@@ -33,11 +33,11 @@ export class Projectile {
     this.sourceTower = sourceTower;
   }
 
-  public update(dt: number): boolean {
-    if (!this.active) return false;
+  public update(dt: number): 'flying' | 'hit' | 'expired' {
+    if (!this.active) return 'expired';
     if (!this.target || this.target.hp <= 0) {
       this.active = false;
-      return false;
+      return 'expired';
     }
 
     const tx = this.target.x;
@@ -47,13 +47,15 @@ export class Projectile {
     const dist = Math.hypot(dx, dy);
 
     if (dist <= this.speed * dt) {
+      this.x = tx;
+      this.y = ty;
       this.active = false;
-      return true; // 命中
+      return 'hit';
     }
 
     this.x += (dx / dist) * this.speed * dt;
     this.y += (dy / dist) * this.speed * dt;
-    return true; // 仍在飞行
+    return 'flying';
   }
 
   public getHitPosition(): Vec2 {

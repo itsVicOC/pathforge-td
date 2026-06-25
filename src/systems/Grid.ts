@@ -28,7 +28,7 @@ export class Grid {
 
   public setTower(x: number, y: number, towerId: string): boolean {
     const cell = this.getCell(x, y);
-    if (!cell || cell.type !== 'buildable' || cell.towerId) return false;
+    if (!cell || (cell.type !== 'buildable' && cell.type !== 'forest') || cell.towerId) return false;
     cell.towerId = towerId;
     return true;
   }
@@ -41,9 +41,30 @@ export class Grid {
   public isWalkable(x: number, y: number): boolean {
     const cell = this.getCell(x, y);
     if (!cell) return false;
-    if (cell.type === 'water' || cell.type === 'obstacle' || cell.type === 'lava') return false;
+    if (cell.type === 'water' || cell.type === 'obstacle') return false;
     if (cell.type === 'buildable' && cell.towerId) return false;
+    if (cell.type === 'forest' && cell.towerId) return false;
     return true;
+  }
+
+  public getMoveCost(x: number, y: number): number {
+    const cell = this.getCell(x, y);
+    if (!cell || !this.isWalkable(x, y)) return Infinity;
+
+    switch (cell.type) {
+      case 'path':
+      case 'spawn':
+      case 'core':
+        return 1;
+      case 'forest':
+        return 3;
+      case 'lava':
+        return 7;
+      case 'buildable':
+        return 5;
+      default:
+        return 1;
+    }
   }
 
   public isBuildable(x: number, y: number): boolean {

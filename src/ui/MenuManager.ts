@@ -52,13 +52,22 @@ export class MenuManager {
     this.showScreen('pause-menu');
   }
 
-  public showGameOver(victory: boolean, stats: { wave: number; kills: number }): void {
+  public showGameOver(victory: boolean, stats: { wave: number; kills: number; nextLevelId?: string }): void {
     const title = document.getElementById('game-over-title')!;
     title.textContent = victory ? '胜利！' : '失败';
     title.style.color = victory ? '#ffd700' : '#ff5252';
 
     const statsEl = document.getElementById('game-over-stats')!;
     statsEl.textContent = `完成波次: ${stats.wave} | 击杀敌人: ${stats.kills}`;
+
+    const nextButton = document.getElementById('btn-next-level') as HTMLButtonElement | null;
+    if (nextButton) {
+      nextButton.style.display = victory && stats.nextLevelId ? 'block' : 'none';
+      nextButton.textContent = stats.nextLevelId
+        ? `继续下一关：${LEVEL_CONFIGS[stats.nextLevelId]?.name ?? stats.nextLevelId}`
+        : '继续下一关';
+      nextButton.dataset.levelId = stats.nextLevelId ?? '';
+    }
 
     this.showScreen('game-over');
   }
@@ -104,6 +113,15 @@ export class MenuManager {
     document.getElementById('btn-retry')?.addEventListener('click', () => {
       this.hideAll();
       eventBus.emit('menu:restart');
+    });
+
+    document.getElementById('btn-next-level')?.addEventListener('click', (event) => {
+      const button = event.currentTarget as HTMLButtonElement;
+      const levelId = button.dataset.levelId;
+      if (!levelId) return;
+
+      this.hideAll();
+      eventBus.emit('menu:nextLevel', { levelId });
     });
 
     document.getElementById('btn-back-levels')?.addEventListener('click', () => {
@@ -231,7 +249,7 @@ export class MenuManager {
     const list = document.getElementById('achievements-list');
     if (!summary || !list) return;
 
-    const stats = this.saveData?.stats ?? { totalKills: 0, highestWave: 0 };
+    const stats = this.saveData?.stats ?? { totalKills: 0, totalBossKills: 0, highestWave: 0 };
     const campaign = this.saveData?.progress.campaign ?? {};
     const unlocked = this.saveData?.progress.achievements ?? [];
 
@@ -245,6 +263,7 @@ export class MenuManager {
 
     summary.innerHTML = `
       <div>累计击杀: ${stats.totalKills}</div>
+      <div>Boss 击杀: ${stats.totalBossKills}</div>
       <div>最高波次: ${stats.highestWave}</div>
       <div>通关关卡: ${completedLevels} / ${Object.keys(LEVEL_CONFIGS).length}</div>
       <div>获得星星: ${totalStars}</div>
