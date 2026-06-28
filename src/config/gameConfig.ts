@@ -6,28 +6,28 @@ export const ENEMY_HP_GROWTH = 1.08;
 export const ENEMY_COUNT_GROWTH = 1.05;
 export const SELL_REFUND_RATE = 0.7;
 
-// 主调色板 - 暗色像素风主题
+// 主调色板 - 暗色战术奇幻主题
 export const PALETTE = {
   // 背景
-  bgDark: '#0f0f1a',
-  bgPanel: '#1a1a2e',
-  bgPanelLight: '#252542',
+  bgDark: '#0a0d10',
+  bgPanel: '#151c22',
+  bgPanelLight: '#22303a',
 
   // 地形
-  buildable: '#2d3a2d',
-  buildableDark: '#232f23',
-  path: '#5c5045',
-  pathDark: '#4a4037',
-  obstacle: '#3a3a4a',
-  water: '#1e4a6e',
-  waterLight: '#2a6090',
-  lava: '#8b1a1a',
-  lavaLight: '#b52a2a',
-  forest: '#1b4d1b',
-  forestLight: '#276327',
-  spawn: '#8b4513',
-  core: '#ffd700',
-  coreGlow: 'rgba(255, 215, 0, 0.3)',
+  buildable: '#334735',
+  buildableDark: '#223126',
+  path: '#75634b',
+  pathDark: '#4f4233',
+  obstacle: '#3e4650',
+  water: '#1d5571',
+  waterLight: '#3c8aa8',
+  lava: '#8f2a1d',
+  lavaLight: '#ef6c35',
+  forest: '#1f5a35',
+  forestLight: '#42a362',
+  spawn: '#9b6233',
+  core: '#f2c94c',
+  coreGlow: 'rgba(242, 201, 76, 0.32)',
 
   // 塔
   towerArcher: '#8bc34a',
@@ -55,17 +55,17 @@ export const PALETTE = {
   enemySkyBoss: '#7c4dff',
 
   // UI
-  text: '#f0f0f5',
-  textMuted: '#a0a0b0',
-  gold: '#ffd54f',
-  lives: '#ff5252',
-  energy: '#4fc3f7',
-  uiBg: 'rgba(20, 20, 35, 0.92)',
-  uiBorder: '#4a4a6a',
-  uiBorderLight: '#6b6b8a',
-  uiAccent: '#4caf50',
-  uiAccentHover: '#66bb6a',
-  uiDanger: '#ef5350',
+  text: '#f5f2e8',
+  textMuted: '#9eb0a7',
+  gold: '#f2c94c',
+  lives: '#ff5d5d',
+  energy: '#5ec8e5',
+  uiBg: 'rgba(12, 17, 20, 0.94)',
+  uiBorder: '#38505a',
+  uiBorderLight: '#6f8b8b',
+  uiAccent: '#58b978',
+  uiAccentHover: '#74d293',
+  uiDanger: '#ff5d5d',
 
   // 特效
   pathPreview: 'rgba(255, 213, 79, 0.5)',

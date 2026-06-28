@@ -11,12 +11,14 @@ This project follows a pragmatic changelog format based on Keep a Changelog.
 - Repository-level `README.md` with project overview, quick start, gameplay, controls, structure, documentation links and validation baseline.
 - Documentation index in `docs/README.md`.
 - Contributor guide in `CONTRIBUTING.md`.
+- Architecture guide, gameplay guide, configuration guide, testing guide, UI/art guide and troubleshooting guide under `docs/`.
 - Release checklist in `docs/Release-Checklist.md`.
 - MIT license file.
 
 ### Changed
 
 - Documentation coverage now includes repository onboarding, development workflow, release checks and documentation maintenance rules.
+- README, docs index and contributor guide now link all repository maintenance documents.
 
 ## [1.0.0] - 2026-06-26
 

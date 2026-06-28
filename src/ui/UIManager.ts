@@ -13,6 +13,7 @@ export class UIManager {
   private selectedExistingTower?: Tower;
   private wavePreviewTime = 0;
   private placementNotice?: { text: string; color: string; ttl: number };
+  private readonly fontFamily = '"Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
 
   private static readonly BUILD_MENU_Y = 450;
   private static readonly TOWER_CARD_X = 12;
@@ -98,55 +99,53 @@ export class UIManager {
   private drawHud(renderer: CanvasRenderer): void {
     const state = this.state.getState();
 
-    // HUD 背景
     const gradient = renderer.getContext().createLinearGradient(0, 0, 0, 44);
-    gradient.addColorStop(0, 'rgba(13, 18, 27, 0.96)');
-    gradient.addColorStop(1, 'rgba(21, 32, 38, 0.88)');
+    gradient.addColorStop(0, 'rgba(12, 17, 20, 0.98)');
+    gradient.addColorStop(1, 'rgba(20, 30, 31, 0.92)');
     renderer.drawRect(0, 0, 960, 44, gradient as any);
 
     const ctx = renderer.getContext();
-    ctx.fillStyle = 'rgba(108, 214, 166, 0.85)';
+    ctx.fillStyle = 'rgba(111, 139, 139, 0.22)';
+    ctx.fillRect(0, 43, 960, 1);
+    ctx.fillStyle = 'rgba(88, 185, 120, 0.85)';
     ctx.fillRect(0, 44, 960, 2);
-    ctx.fillStyle = 'rgba(255, 213, 79, 0.7)';
+    ctx.fillStyle = 'rgba(242, 201, 76, 0.72)';
     ctx.fillRect(0, 44, 180, 2);
 
-    // 生命
-    this.drawStatBox(renderer, 16, 8, COLORS.lives, '❤', `${state.lives}`);
-    // 金币
-    this.drawStatBox(renderer, 110, 8, COLORS.gold, '🪙', `${this.economy.getGold()}`);
-    // 波次
+    this.drawStatBox(renderer, 14, 8, COLORS.lives, 'CORE', `${state.lives}`);
+    this.drawStatBox(renderer, 112, 8, COLORS.gold, 'GOLD', `${this.economy.getGold()}`);
     const waveText = this.waveManager.isEndless()
       ? `波次 ${state.wave}`
       : `波次 ${Math.min(state.wave + 1, state.totalWaves)}/${state.totalWaves}`;
-    this.drawStatBox(renderer, 210, 8, COLORS.energy, '⚡', waveText, 118);
+    this.drawStatBox(renderer, 212, 8, COLORS.energy, 'WAVE', waveText, 126);
 
     this.drawSpeedControls(renderer, 350, 8);
 
     if (state.paused) {
-      renderer.drawText('⏸ 暂停', 510, 27, { color: '#ffeb3b', font: 'bold 16px "Courier New", monospace' });
+      renderer.drawRoundRect(510, 8, 72, 28, 6, 'rgba(242,201,76,0.12)', 'rgba(242,201,76,0.55)');
+      renderer.drawText('暂停', 546, 27, { color: COLORS.gold, font: `700 14px ${this.fontFamily}`, align: 'center' });
     }
 
-    // 开始波次按钮
     const canStart = this.waveManager.canStartWave();
     renderer.drawButton(780, 7, 120, 30, canStart ? '开始波次' : '战斗中', !canStart);
   }
 
-  private drawStatBox(renderer: CanvasRenderer, x: number, y: number, color: string, icon: string, value: string, width = 80): void {
+  private drawStatBox(renderer: CanvasRenderer, x: number, y: number, color: string, label: string, value: string, width = 84): void {
     const ctx = renderer.getContext();
 
     const gradient = ctx.createLinearGradient(x, y, x, y + 28);
-    gradient.addColorStop(0, 'rgba(255,255,255,0.08)');
-    gradient.addColorStop(1, 'rgba(0,0,0,0.24)');
-    renderer.drawRoundRect(x, y, width, 28, 6, gradient, 'rgba(255,255,255,0.12)');
+    gradient.addColorStop(0, 'rgba(255,255,255,0.085)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0.28)');
+    renderer.drawRoundRect(x, y, width, 28, 7, gradient, 'rgba(255,255,255,0.11)');
 
-    // 图标
-    renderer.drawText(icon, x + 8, y + 20, { font: '14px "Courier New", monospace' });
-    // 数值
-    renderer.drawText(value, x + 30, y + 20, { color, font: 'bold 15px "Courier New", monospace' });
+    ctx.fillStyle = color;
+    ctx.fillRect(x + 1, y + 1, 3, 26);
+    renderer.drawText(label, x + 11, y + 11, { font: `700 8px ${this.fontFamily}`, color: COLORS.textMuted });
+    renderer.drawText(value, x + 11, y + 23, { color, font: `800 15px ${this.fontFamily}` });
   }
 
   private drawSpeedControls(renderer: CanvasRenderer, x: number, y: number): void {
-    renderer.drawText('速度', x, y + 19, { font: '11px "Courier New", monospace', color: COLORS.textMuted });
+    renderer.drawText('速度', x, y + 19, { font: `700 11px ${this.fontFamily}`, color: COLORS.textMuted });
 
     const current = this.state.getState().timeScale;
     const speeds = [1, 2, 3];
@@ -159,11 +158,11 @@ export class UIManager {
         36,
         28,
         6,
-        active ? 'rgba(108, 214, 166, 0.42)' : 'rgba(0,0,0,0.28)',
-        active ? '#6cd6a6' : 'rgba(255,255,255,0.14)',
+        active ? 'rgba(88, 185, 120, 0.38)' : 'rgba(0,0,0,0.28)',
+        active ? COLORS.uiAccentHover : 'rgba(255,255,255,0.14)',
       );
       renderer.drawText(`${speeds[i]}x`, bx + 18, y + 19, {
-        font: 'bold 12px "Courier New", monospace',
+        font: `800 12px ${this.fontFamily}`,
         align: 'center',
         color: active ? COLORS.text : COLORS.textMuted,
       });
@@ -180,13 +179,13 @@ export class UIManager {
 
     const ctx = renderer.getContext();
     const gradient = ctx.createLinearGradient(0, 450, 0, 540);
-    gradient.addColorStop(0, 'rgba(13, 18, 27, 0.62)');
-    gradient.addColorStop(1, 'rgba(10, 14, 21, 0.97)');
+    gradient.addColorStop(0, 'rgba(15, 21, 22, 0.82)');
+    gradient.addColorStop(1, 'rgba(7, 10, 11, 0.98)');
     renderer.drawRect(0, 450, 960, 90, gradient as any);
-    ctx.fillStyle = 'rgba(108, 214, 166, 0.72)';
+    ctx.fillStyle = 'rgba(88, 185, 120, 0.72)';
     ctx.fillRect(0, 450, 960, 2);
 
-    renderer.drawText('防御塔', 14, 461, { font: 'bold 12px "Courier New", monospace', color: '#c8f7df' });
+    renderer.drawText('防御塔', 14, 461, { font: `800 12px ${this.fontFamily}`, color: '#dff7ea' });
 
     let i = 0;
     for (const [id, config] of Object.entries(configs)) {
@@ -198,21 +197,23 @@ export class UIManager {
       // 按钮背景
       const btnGradient = ctx.createLinearGradient(x, y, x, y + size);
       if (selected) {
-        btnGradient.addColorStop(0, 'rgba(104, 211, 145, 0.35)');
-        btnGradient.addColorStop(1, 'rgba(28, 91, 75, 0.68)');
+        btnGradient.addColorStop(0, 'rgba(116, 210, 147, 0.38)');
+        btnGradient.addColorStop(1, 'rgba(32, 93, 68, 0.78)');
       } else {
-        btnGradient.addColorStop(0, 'rgba(35, 46, 55, 0.92)');
-        btnGradient.addColorStop(1, 'rgba(18, 24, 32, 0.96)');
+        btnGradient.addColorStop(0, 'rgba(39, 50, 48, 0.94)');
+        btnGradient.addColorStop(1, 'rgba(17, 23, 24, 0.98)');
       }
       renderer.drawRoundRect(
         x,
         y,
         size,
         size,
-        7,
+        8,
         btnGradient,
-        selected ? '#6cd6a6' : affordable ? 'rgba(255,255,255,0.16)' : COLORS.uiDanger,
+        selected ? COLORS.uiAccentHover : affordable ? 'rgba(255,255,255,0.16)' : COLORS.uiDanger,
       );
+      ctx.fillStyle = config.color;
+      ctx.fillRect(x + 5, y + 5, size - 10, 3);
 
       if (!affordable) {
         ctx.fillStyle = 'rgba(0,0,0,0.38)';
@@ -223,26 +224,27 @@ export class UIManager {
 
       // 快捷键
       if (i < 9) {
-        renderer.drawText(`${i + 1}`, x + 4, y + 12, { font: 'bold 10px "Courier New", monospace', color: COLORS.textMuted });
+        renderer.drawRoundRect(x + 3, y + 3, 13, 13, 4, 'rgba(0,0,0,0.42)', 'rgba(255,255,255,0.12)');
+        renderer.drawText(`${i + 1}`, x + 9.5, y + 13, { font: `800 9px ${this.fontFamily}`, color: COLORS.textMuted, align: 'center' });
       }
 
       // 定位标签
       renderer.drawText(config.role ?? '通用', x + size / 2, y + size - 17, {
-        font: 'bold 9px "Courier New", monospace',
+        font: `800 9px ${this.fontFamily}`,
         align: 'center',
         color: selected ? '#c8f7df' : COLORS.textMuted,
       });
 
       // 名称
       renderer.drawText(config.name.slice(0, 2), x + size / 2, y + size - 6, {
-        font: 'bold 10px "Courier New", monospace',
+        font: `800 10px ${this.fontFamily}`,
         align: 'center',
         color: affordable ? '#eef9f3' : COLORS.uiDanger,
       });
 
       // 成本
       renderer.drawText(`${config.cost}`, x + size / 2, y - 4, {
-        font: 'bold 10px "Courier New", monospace',
+        font: `800 10px ${this.fontFamily}`,
         align: 'center',
         color: affordable ? COLORS.gold : '#f55',
       });
@@ -262,26 +264,26 @@ export class UIManager {
     const ctx = renderer.getContext();
 
     const gradient = ctx.createLinearGradient(x, y, x, y + h);
-    gradient.addColorStop(0, 'rgba(28, 43, 51, 0.95)');
-    gradient.addColorStop(1, 'rgba(11, 17, 24, 0.98)');
+    gradient.addColorStop(0, 'rgba(31, 42, 40, 0.96)');
+    gradient.addColorStop(1, 'rgba(9, 14, 15, 0.99)');
     renderer.drawRoundRect(x, y, w, h, 8, gradient, config?.color ?? 'rgba(255,255,255,0.13)');
 
     if (!config) {
       renderer.drawText('塔作用说明', x + 12, y + 18, {
-        font: 'bold 13px "Courier New", monospace',
+        font: `800 13px ${this.fontFamily}`,
         color: '#dff7ea',
       });
       renderer.drawText('点击底部塔卡查看：定位、攻击目标、特殊效果和推荐用途。', x + 12, y + 38, {
-        font: '12px "Courier New", monospace',
+        font: `500 12px ${this.fontFamily}`,
         color: COLORS.text,
       });
       renderer.drawText('卡片标签：单体 / 范围 / 减速 / 对空 / 毒伤 / 狙杀 / 增益 / 控制', x + 12, y + 55, {
-        font: '11px "Courier New", monospace',
+        font: `500 11px ${this.fontFamily}`,
         color: COLORS.textMuted,
       });
       if (this.placementNotice) {
         renderer.drawText(this.placementNotice.text, x + 12, y + 71, {
-          font: 'bold 11px "Courier New", monospace',
+          font: `800 11px ${this.fontFamily}`,
           color: this.placementNotice.color,
         });
       }
@@ -290,27 +292,28 @@ export class UIManager {
 
     ctx.fillStyle = config.color;
     ctx.fillRect(x + 10, y + 11, 4, 54);
+    renderer.drawRoundRect(x + 22, y + 19, 34, 38, 7, 'rgba(0,0,0,0.25)', 'rgba(255,255,255,0.10)');
     renderer.drawTowerIcon(config.id, config.color, x + 34, y + 37, 32);
     renderer.drawText(`${config.name}  [${config.role ?? '通用'}]`, x + 58, y + 18, {
-      font: 'bold 13px "Courier New", monospace',
+      font: `800 13px ${this.fontFamily}`,
       color: '#dff7ea',
     });
     renderer.drawText(`${this.getDamageTypeLabel(config.damageType)} | ${this.getTargetLabel(config.targetFlags)} | ${config.cost} 金币`, x + 58, y + 34, {
-      font: '11px "Courier New", monospace',
+      font: `700 11px ${this.fontFamily}`,
       color: COLORS.gold,
     });
 
     const lines = this.wrapText(`${config.description ?? ''} ${config.special ?? ''} ${config.usage ?? ''}`, 30, 2);
     for (let i = 0; i < lines.length; i++) {
       renderer.drawText(lines[i], x + 58, y + 50 + i * 13, {
-        font: '11px "Courier New", monospace',
+        font: `500 11px ${this.fontFamily}`,
         color: i === 0 ? COLORS.text : COLORS.textMuted,
       });
     }
 
     if (this.placementNotice) {
       renderer.drawText(this.placementNotice.text, x + 58, y + 73, {
-        font: 'bold 11px "Courier New", monospace',
+        font: `800 11px ${this.fontFamily}`,
         color: this.placementNotice.color,
       });
     }
@@ -363,16 +366,16 @@ export class UIManager {
 
     // 面板背景
     const gradient = ctx.createLinearGradient(x, y, x, y + h);
-    gradient.addColorStop(0, 'rgba(23, 35, 43, 0.96)');
-    gradient.addColorStop(1, 'rgba(10, 14, 21, 0.98)');
+    gradient.addColorStop(0, 'rgba(30, 41, 40, 0.97)');
+    gradient.addColorStop(1, 'rgba(9, 13, 14, 0.99)');
     renderer.drawRoundRect(x, y, w, h, 8, gradient, 'rgba(255,255,255,0.15)');
 
     // 顶部装饰条
     ctx.fillStyle = tower.config.color;
     ctx.fillRect(x + 1, y + 1, w - 2, 4);
 
-    renderer.drawText(`${tower.config.name}`, x + 14, y + 26, { font: 'bold 16px "Courier New", monospace' });
-    renderer.drawText(`Lv.${tower.level}`, x + w - 50, y + 26, { font: 'bold 14px "Courier New", monospace', color: COLORS.gold });
+    renderer.drawText(`${tower.config.name}`, x + 14, y + 26, { font: `800 16px ${this.fontFamily}` });
+    renderer.drawText(`Lv.${tower.level}`, x + w - 50, y + 26, { font: `800 14px ${this.fontFamily}`, color: COLORS.gold });
 
     const stats = [
       { label: '伤害', value: tower.getDamage() },
@@ -383,8 +386,8 @@ export class UIManager {
     for (let i = 0; i < stats.length; i++) {
       const sx = x + 14 + i * 90;
       renderer.drawRoundRect(sx - 4, y + 39, 74, 40, 6, 'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.08)');
-      renderer.drawText(stats[i].label, sx, y + 52, { font: '11px "Courier New", monospace', color: COLORS.textMuted });
-      renderer.drawText(`${stats[i].value}`, sx, y + 70, { font: 'bold 14px "Courier New", monospace' });
+      renderer.drawText(stats[i].label, sx, y + 52, { font: `600 11px ${this.fontFamily}`, color: COLORS.textMuted });
+      renderer.drawText(`${stats[i].value}`, sx, y + 70, { font: `800 14px ${this.fontFamily}` });
     }
 
     const upgrade = tower.getNextUpgrade();
@@ -399,10 +402,10 @@ export class UIManager {
     const refundRate = inCombat ? 0.5 : 0.7;
     renderer.drawButton(x + 146, y + 110, 120, 38, `出售 ${tower.getSellValue(refundRate)}`, false);
 
-    renderer.drawText('目标', x + 14, y + 164, { font: '11px "Courier New", monospace', color: COLORS.textMuted });
+    renderer.drawText('目标', x + 14, y + 164, { font: `700 11px ${this.fontFamily}`, color: COLORS.textMuted });
     renderer.drawButton(x + 70, y + 146, 196, 34, this.getPriorityLabel(tower.targetPriority), false);
     renderer.drawText(this.getPriorityHint(tower.targetPriority), x + 14, y + 203, {
-      font: '11px "Courier New", monospace',
+      font: `500 11px ${this.fontFamily}`,
       color: COLORS.textMuted,
     });
   }
@@ -418,17 +421,17 @@ export class UIManager {
     const ctx = renderer.getContext();
 
     const gradient = ctx.createLinearGradient(x, y, x, y + h);
-    gradient.addColorStop(0, 'rgba(23, 35, 43, 0.92)');
-    gradient.addColorStop(1, 'rgba(10, 14, 21, 0.96)');
+    gradient.addColorStop(0, 'rgba(30, 41, 40, 0.94)');
+    gradient.addColorStop(1, 'rgba(9, 13, 14, 0.97)');
     renderer.drawRoundRect(x, y, w, h, 8, gradient, 'rgba(255,255,255,0.14)');
 
-    ctx.fillStyle = 'rgba(108, 214, 166, 0.72)';
+    ctx.fillStyle = 'rgba(88, 185, 120, 0.72)';
     ctx.fillRect(x + 1, y + 1, w - 2, 3);
 
-    renderer.drawText(`下一波 ${wave.wave}`, x + 12, y + 22, { font: 'bold 14px "Courier New", monospace', color: '#dff7ea' });
-    renderer.drawText(`奖励 ${wave.bonus}`, x + w - 74, y + 22, { font: 'bold 12px "Courier New", monospace', color: COLORS.gold });
+    renderer.drawText(`下一波 ${wave.wave}`, x + 12, y + 22, { font: `800 14px ${this.fontFamily}`, color: '#dff7ea' });
+    renderer.drawText(`奖励 ${wave.bonus}`, x + w - 74, y + 22, { font: `800 12px ${this.fontFamily}`, color: COLORS.gold });
     renderer.drawText(this.getWaveAdvice(wave.groups.map(group => group.type)), x + 12, y + 40, {
-      font: 'bold 11px "Courier New", monospace',
+      font: `800 11px ${this.fontFamily}`,
       color: '#ffd54f',
     });
 
@@ -440,11 +443,11 @@ export class UIManager {
       ctx.fillStyle = enemy?.color ?? COLORS.textMuted;
       ctx.fillRect(x + 15, gy - 11, 9, 9);
       renderer.drawText(`${enemy?.name ?? group.type} x${group.count}`, x + 32, gy, {
-        font: '12px "Courier New", monospace',
+        font: `600 12px ${this.fontFamily}`,
         color: COLORS.text,
       });
       renderer.drawText(`+${group.delay.toFixed(0)}s`, x + w - 45, gy, {
-        font: '11px "Courier New", monospace',
+        font: `500 11px ${this.fontFamily}`,
         color: COLORS.textMuted,
       });
     }
@@ -485,26 +488,48 @@ export class UIManager {
   private drawModal(renderer: CanvasRenderer, title: string, subtitle: string): void {
     const ctx = renderer.getContext();
 
-    // 暗背景
-    renderer.drawRect(0, 0, 960, 540, 'rgba(0, 0, 0, 0.75)');
+    renderer.drawRect(0, 0, 960, 540, 'rgba(3, 5, 6, 0.72)');
 
-    // 面板
-    const x = 330;
-    const y = 190;
-    const w = 300;
-    const h = 160;
+    const x = 315;
+    const y = 188;
+    const w = 330;
+    const h = 164;
+    const victory = title === '胜利！';
 
+    const glow = victory ? 'rgba(242, 201, 76, 0.22)' : 'rgba(255, 93, 93, 0.18)';
+    const accent = victory ? COLORS.gold : COLORS.lives;
+
+    ctx.save();
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 26;
     const gradient = ctx.createLinearGradient(x, y, x, y + h);
-    gradient.addColorStop(0, 'rgba(30, 30, 50, 0.98)');
-    gradient.addColorStop(1, 'rgba(20, 20, 35, 0.98)');
-    renderer.drawRect(x, y, w, h, gradient as any);
+    gradient.addColorStop(0, 'rgba(36, 48, 45, 0.98)');
+    gradient.addColorStop(1, 'rgba(8, 12, 13, 0.99)');
+    renderer.drawRoundRect(x, y, w, h, 10, gradient, 'rgba(255,255,255,0.14)');
+    ctx.restore();
 
-    ctx.strokeStyle = COLORS.uiAccent;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
-
-    renderer.drawText(title, 480, 250, { font: 'bold 36px "Courier New", monospace', align: 'center', color: title === '胜利！' ? COLORS.gold : COLORS.lives });
-    renderer.drawText(subtitle, 480, 290, { align: 'center', color: COLORS.textMuted, font: '14px "Courier New", monospace' });
+    ctx.fillStyle = accent;
+    ctx.fillRect(x + 1, y + 1, w - 2, 4);
+    renderer.drawText(victory ? '防线稳固' : '核心失守', 480, y + 32, {
+      font: `700 13px ${this.fontFamily}`,
+      align: 'center',
+      color: COLORS.textMuted,
+    });
+    renderer.drawText(title, 480, y + 84, {
+      font: `900 36px ${this.fontFamily}`,
+      align: 'center',
+      color: accent,
+    });
+    renderer.drawText(subtitle, 480, y + 120, {
+      align: 'center',
+      color: COLORS.textMuted,
+      font: `600 14px ${this.fontFamily}`,
+    });
+    renderer.drawText('结算菜单已打开', 480, y + 144, {
+      align: 'center',
+      color: COLORS.textMuted,
+      font: `500 11px ${this.fontFamily}`,
+    });
   }
 
   private handleUIClick(x: number, y: number): boolean {

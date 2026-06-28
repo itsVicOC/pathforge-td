@@ -41,6 +41,18 @@ npm run test -- --run
 npm run preview
 ```
 
+## 部署
+
+本项目通过 GitHub Actions 部署到 GitHub Pages。推送到 `main` 后会自动运行测试、构建并发布 `dist/`。
+
+线上地址：
+
+```text
+https://itsvicoc.github.io/pathforge-td/
+```
+
+由于这是 GitHub Pages 项目页，Vite 的生产资源前缀固定为 `/pathforge-td/`。如果未来改成自定义域名或用户站点根路径，需要同步调整 `vite.config.ts` 的 `base`。
+
 ## 玩法概览
 
 目标是在敌人抵达核心前消灭所有波次。地面敌人会根据当前地图和已建塔实时寻路，飞行敌人会直线接近核心。放塔不能完全堵死任一入口到核心的路径。
@@ -104,10 +116,16 @@ npm run preview
 
 - [文档总览](docs/README.md)
 - [PRD/GDD](docs/GDD-PathForgeTD.md)
+- [架构说明](docs/Architecture.md)
 - [技术设计](docs/Technical-Design.md)
+- [玩法指南](docs/Gameplay-Guide.md)
+- [配置扩展指南](docs/Configuration-Guide.md)
 - [开发计划](docs/Development-Plan.md)
+- [测试指南](docs/Testing-Guide.md)
+- [UI 与美术规范](docs/UI-Art-Guide.md)
 - [平衡记录](docs/Balance-Notes.md)
 - [发布检查清单](docs/Release-Checklist.md)
+- [故障排查](docs/Troubleshooting.md)
 - [贡献指南](CONTRIBUTING.md)
 - [变更记录](CHANGELOG.md)
 
@@ -118,6 +136,7 @@ npm run preview
 - 地图格子坐标运行中不能移动；路径预览只能改变路线显示，不能改变关卡布局。
 - 新增关卡、敌人、塔或波次后，需要同步更新测试和相关文档。
 - 调整塔、敌人、波次、关卡或经济后，需要追加 `docs/Balance-Notes.md`。
+- 修改架构、配置格式、测试流程、UI/美术规范或常见问题时，需要同步对应专项文档。
 
 ## 验证基线
 

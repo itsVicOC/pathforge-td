@@ -20,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/itsVicOC/pathforge-td/issues"
   },
-  "homepage": "https://github.com/itsVicOC/pathforge-td#readme",
+  "homepage": "https://itsvicoc.github.io/pathforge-td/",
   "devDependencies": {
     "@types/node": "^20.14.0",
     "eslint": "^8.57.0",

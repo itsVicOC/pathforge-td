@@ -16,6 +16,8 @@ npm run test -- --run
 npm run build
 ```
 
+更完整的自动化、手测和浏览器验证矩阵见 `docs/Testing-Guide.md`。
+
 ## 分支和提交
 
 建议分支命名：
@@ -70,16 +72,23 @@ test: cover path blocking validation
 - 塔、敌人、关卡、成就数量变化。
 - 玩法规则、放塔规则、胜负条件变化。
 - 架构、核心类型、事件流、存档字段变化。
+- 配置扩展步骤、测试流程、UI/美术规范或排障流程变化。
 - 平衡调整，包括价格、伤害、速度、奖励、波次和地图。
 - 发布版本或可试玩版本变更。
 
 对应文档：
 
 - 产品和玩法：`docs/GDD-PathForgeTD.md`
+- 玩家和手测说明：`docs/Gameplay-Guide.md`
+- 架构边界：`docs/Architecture.md`
 - 技术和架构：`docs/Technical-Design.md`
+- 配置扩展：`docs/Configuration-Guide.md`
+- 测试矩阵：`docs/Testing-Guide.md`
+- UI 和美术：`docs/UI-Art-Guide.md`
 - 计划和验收：`docs/Development-Plan.md`
 - 平衡记录：`docs/Balance-Notes.md`
 - 发布流程：`docs/Release-Checklist.md`
+- 故障排查：`docs/Troubleshooting.md`
 - 版本记录：`CHANGELOG.md`
 
 ## Pull Request 检查清单

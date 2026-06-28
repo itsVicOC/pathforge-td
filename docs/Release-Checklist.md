@@ -8,6 +8,9 @@
 - [ ] 更新 `CHANGELOG.md`，记录新增、修复、测试和已知问题。
 - [ ] 确认 `README.md` 的功能规模和运行方式与当前实现一致。
 - [ ] 确认 `docs/README.md` 文档索引没有失效链接。
+- [ ] 若调整架构、配置字段或存档结构，同步 `docs/Architecture.md`、`docs/Technical-Design.md`、`docs/Configuration-Guide.md`。
+- [ ] 若调整 UI、菜单、塔/敌视觉或范围预览，同步 `docs/UI-Art-Guide.md` 和 `docs/Gameplay-Guide.md`。
+- [ ] 若调整测试、手测或排障流程，同步 `docs/Testing-Guide.md` 和 `docs/Troubleshooting.md`。
 - [ ] 若调整平衡，追加 `docs/Balance-Notes.md`。
 
 ## 2. 自动化验证

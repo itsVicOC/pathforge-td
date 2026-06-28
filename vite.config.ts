@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: './',
+  base: '/pathforge-td/',
   publicDir: 'public',
   build: {
     outDir: 'dist',

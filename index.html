@@ -18,9 +18,9 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: #0b1016;
-        color: #fff;
-        font-family: 'Courier New', Courier, monospace;
+        background: #090c0e;
+        color: #f5f2e8;
+        font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       }
       body {
         display: flex;
@@ -33,9 +33,8 @@
         height: 56.25vw;
         max-width: 960px;
         max-height: 540px;
-        image-rendering: pixelated;
-        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(108, 214, 166, 0.18);
-        background: #0f151d;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(116, 210, 147, 0.16);
+        background: #0a0d10;
       }
       @media (max-aspect-ratio: 16/9) {
         #game-container {
@@ -53,7 +52,6 @@
         display: block;
         width: 100%;
         height: 100%;
-        image-rendering: pixelated;
         touch-action: none;
       }
       .screen {
@@ -67,10 +65,11 @@
         justify-content: center;
         align-items: center;
         background:
-          linear-gradient(rgba(108, 214, 166, 0.035) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(108, 214, 166, 0.035) 1px, transparent 1px),
-          linear-gradient(180deg, rgba(12, 19, 25, 0.96), rgba(8, 12, 18, 0.98));
-        background-size: 32px 32px, 32px 32px, 100% 100%;
+          linear-gradient(rgba(242, 201, 76, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(116, 210, 147, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(242, 201, 76, 0.05), transparent 22%, transparent 78%, rgba(116, 210, 147, 0.05)),
+          linear-gradient(180deg, rgba(11, 15, 16, 0.97), rgba(8, 10, 10, 0.99));
+        background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%;
         z-index: 10;
         padding: 20px;
         overflow-y: auto;
@@ -78,45 +77,84 @@
       .screen.active {
         display: flex;
       }
+      .screen::before {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border: 1px solid rgba(116, 210, 147, 0.14);
+        pointer-events: none;
+      }
       .screen h1 {
-        font-size: clamp(32px, 8vw, 48px);
-        margin-bottom: 10px;
-        color: #f7d86a;
-        text-shadow: 0 2px 0 #000, 0 0 22px rgba(247, 216, 106, 0.18);
+        font-size: 46px;
+        margin-bottom: 8px;
+        color: #f2c94c;
+        text-shadow: 0 2px 0 #000, 0 0 24px rgba(242, 201, 76, 0.16);
         text-align: center;
         letter-spacing: 0;
       }
       .screen h2 {
-        font-size: clamp(24px, 6vw, 32px);
-        margin-bottom: 20px;
+        font-size: 30px;
+        margin-bottom: 18px;
         color: #dff7ea;
         text-align: center;
         letter-spacing: 0;
+        position: relative;
+        z-index: 1;
       }
       .screen p {
         color: #9fb8b0;
         margin-bottom: 20px;
         font-size: 14px;
         text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+      .screen-subtitle {
+        color: #9eb0a7;
+        font-size: 13px;
+        margin-top: -8px;
+        margin-bottom: 14px;
+      }
+      .menu-panel {
+        width: min(100%, 540px);
+        padding: 22px;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.025)),
+          rgba(8, 12, 13, 0.56);
+        border: 1px solid rgba(116, 210, 147, 0.18);
+        border-radius: 10px;
+        box-shadow: 0 18px 42px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.08);
+        position: relative;
+        z-index: 1;
+      }
+      .menu-panel.compact {
+        width: min(100%, 420px);
+      }
+      .menu-panel .btn-row {
+        width: 100%;
+      }
+      .menu-panel.compact .btn {
+        width: 100%;
       }
       .btn {
-        background: linear-gradient(180deg, #2c6b55, #174536);
-        border: 1px solid #6cd6a6;
+        background: linear-gradient(180deg, #347a58, #1c523b);
+        border: 1px solid #74d293;
         color: #eef9f3;
         padding: 12px 32px;
         margin: 6px;
         font-size: 16px;
-        font-family: 'Courier New', Courier, monospace;
+        font-family: inherit;
+        font-weight: 800;
         cursor: pointer;
         transition: all 0.15s;
         min-width: 200px;
         text-align: center;
         touch-action: manipulation;
         border-radius: 7px;
-        box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.16);
+        box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.18);
       }
       .btn:hover, .btn:active {
-        background: linear-gradient(180deg, #347c63, #1d5542);
+        background: linear-gradient(180deg, #3d8f66, #236348);
         transform: translateY(-1px);
       }
       .btn:disabled {
@@ -125,8 +163,8 @@
         transform: none;
       }
       .btn.secondary {
-        background: linear-gradient(180deg, #263440, #171f28);
-        border-color: #566b75;
+        background: linear-gradient(180deg, #27333a, #151b1f);
+        border-color: #52676a;
       }
       .btn.secondary:hover, .btn.secondary:active {
         background: linear-gradient(180deg, #314350, #202b35);
@@ -135,30 +173,35 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        max-width: 500px;
+        max-width: 520px;
+        position: relative;
+        z-index: 1;
       }
       .level-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-        gap: 12px;
-        margin: 20px 0;
+        grid-template-columns: repeat(6, minmax(76px, 1fr));
+        gap: 10px;
+        margin: 12px 0 18px;
         width: 100%;
-        max-width: 400px;
+        max-width: 650px;
+        position: relative;
+        z-index: 1;
       }
       .level-btn {
         width: 100%;
-        aspect-ratio: 1;
-        background: linear-gradient(180deg, #243541, #111a22);
-        border: 1px solid rgba(108, 214, 166, 0.74);
+        min-height: 62px;
+        background: linear-gradient(180deg, #263832, #111816);
+        border: 1px solid rgba(116, 210, 147, 0.62);
         color: #eef9f3;
         cursor: pointer;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        font-size: 14px;
+        font-size: 13px;
+        font-weight: 800;
         border-radius: 8px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 6px 16px rgba(0,0,0,0.22);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 8px 18px rgba(0,0,0,0.24);
       }
       .level-btn:hover, .level-btn:active {
         background: linear-gradient(180deg, #2f6956, #173d31);
@@ -170,22 +213,110 @@
         cursor: not-allowed;
       }
       .level-btn .stars {
-        color: #ffd700;
+        color: #f2c94c;
         font-size: 12px;
         margin-top: 4px;
+      }
+      .level-id {
+        color: #74d293;
+        font-size: 11px;
+        margin-bottom: 2px;
+      }
+      .level-name {
+        max-width: 100%;
+        padding: 0 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #stats-content {
+        position: relative;
+        z-index: 1;
+        padding: 0 8px 10px;
+        max-height: min(60%, 330px);
+      }
+      #stats-summary {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(92px, 1fr));
+        gap: 8px;
+        width: min(100%, 760px);
+        margin: 0 auto 14px;
+      }
+      .stat-pill {
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 8px;
+        padding: 8px 10px;
+        text-align: left;
+      }
+      .stat-pill span {
+        display: block;
+        color: #9eb0a7;
+        font-size: 11px;
+      }
+      .stat-pill strong {
+        display: block;
+        color: #f2c94c;
+        font-size: 15px;
+        margin-top: 2px;
+      }
+      #achievements-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      .achievement {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 8px;
+      }
+      .achievement.unlocked {
+        background: rgba(88, 185, 120, 0.14);
+        border-color: rgba(116, 210, 147, 0.50);
+      }
+      .achievement-icon {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        background: rgba(0,0,0,0.24);
+        border-radius: 7px;
+        font-size: 19px;
+      }
+      .achievement-name {
+        font-weight: 800;
+        font-size: 13px;
+      }
+      .achievement-desc {
+        color: #9eb0a7;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+      .achievement-state {
+        color: #f2c94c;
+        font-weight: 900;
       }
       .setting-row {
         display: grid;
         grid-template-columns: minmax(96px, 1fr) minmax(150px, 190px) 52px;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         width: min(100%, 480px);
-        min-height: 44px;
-        margin: 6px auto;
-        padding: 9px 12px;
+        min-height: 38px;
+        margin: 4px auto;
+        padding: 7px 10px;
         background: rgba(255, 255, 255, 0.055);
         border: 1px solid rgba(255,255,255,0.09);
         border-radius: 8px;
+        position: relative;
+        z-index: 1;
       }
       .setting-row label {
         color: #fff;
@@ -217,7 +348,7 @@
         grid-column: 2 / 4;
       }
       .setting-value {
-        color: #f7d86a;
+        color: #f2c94c;
         min-width: 52px;
         text-align: right;
         font-variant-numeric: tabular-nums;
@@ -227,13 +358,51 @@
         flex-direction: column;
         align-items: center;
         max-width: 560px;
-        max-height: calc(100% - 132px);
-        margin: 0 auto 12px;
+        max-height: none;
+        margin: 0 auto 10px;
         padding: 2px 8px;
+      }
+      #settings-content.scrollable {
+        overflow-y: visible;
+      }
+      #game-over-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+        margin: 0 0 16px;
+      }
+      .result-stat {
+        padding: 10px;
+        background: rgba(255,255,255,0.055);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 8px;
+        text-align: left;
+      }
+      .result-stat span {
+        display: block;
+        color: #9eb0a7;
+        font-size: 11px;
+      }
+      .result-stat strong {
+        color: #f2c94c;
+        font-size: 18px;
       }
       #settings-screen .btn-row {
         gap: 8px;
         max-width: 480px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      #settings-screen .btn {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        padding: 11px 16px;
+      }
+      #settings-screen .menu-panel {
+        width: min(100%, 560px);
+        padding: 18px 22px;
       }
       #pause-hint {
         display: none;
@@ -243,10 +412,44 @@
         max-height: 60%;
         width: 100%;
       }
+      .scrollable::-webkit-scrollbar {
+        width: 8px;
+      }
+      .scrollable::-webkit-scrollbar-thumb {
+        background: rgba(116, 210, 147, 0.32);
+        border-radius: 999px;
+      }
+      @media (max-width: 720px) {
+        .screen h1 { font-size: 36px; }
+        .screen h2 { font-size: 24px; }
+        .menu-panel {
+          padding: 16px;
+        }
+        .level-grid {
+          grid-template-columns: repeat(3, minmax(76px, 1fr));
+          max-width: 340px;
+        }
+        #stats-summary {
+          grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+        #achievements-list {
+          grid-template-columns: 1fr;
+        }
+        #game-over-stats {
+          grid-template-columns: 1fr;
+        }
+      }
       @media (max-width: 560px) {
         #game-container:has(.screen.active) {
           height: 100vh;
           max-height: none;
+        }
+        .screen {
+          padding: 14px;
+          justify-content: flex-start;
+        }
+        .screen h1 {
+          margin-top: 26px;
         }
         #settings-screen {
           justify-content: flex-start;
@@ -255,11 +458,33 @@
         #settings-screen h2 {
           margin-bottom: 10px;
         }
+        #settings-screen .menu-panel {
+          width: 100%;
+          padding: 16px;
+        }
+        #settings-screen .btn-row {
+          grid-template-columns: 1fr;
+        }
         #settings-content {
           flex: 1 1 auto;
           max-height: none;
           min-height: 0;
           margin-bottom: 8px;
+        }
+        #settings-content.scrollable {
+          overflow-y: auto;
+        }
+        #stats-content {
+          max-height: none;
+          flex: 1 1 auto;
+          min-height: 0;
+        }
+        .screen::before {
+          inset: 10px;
+        }
+        .btn {
+          min-width: 0;
+          width: 100%;
         }
         .setting-row {
           grid-template-columns: 1fr;
@@ -282,36 +507,42 @@
 
       <!-- 主菜单 -->
       <div id="main-menu" class="screen active">
-        <h1>PathForge TD</h1>
-        <p>Shape the Maze. Defend the Core.</p>
-        <div class="btn-row">
-          <button class="btn" id="btn-campaign">战役模式</button>
-          <button class="btn" id="btn-endless">无尽模式</button>
-          <button class="btn secondary" id="btn-stats">统计与成就</button>
-          <button class="btn secondary" id="btn-settings">设置</button>
+        <div class="menu-panel compact">
+          <h1>PathForge TD</h1>
+          <p>Shape the Maze. Defend the Core.</p>
+          <div class="btn-row">
+            <button class="btn" id="btn-campaign">战役模式</button>
+            <button class="btn" id="btn-endless">无尽模式</button>
+            <button class="btn secondary" id="btn-stats">统计与成就</button>
+            <button class="btn secondary" id="btn-settings">设置</button>
+          </div>
         </div>
       </div>
 
       <!-- 关卡选择 -->
       <div id="level-select" class="screen">
         <h2>选择关卡</h2>
+        <p class="screen-subtitle">8 个章节，24 张战役地图</p>
         <div class="level-grid" id="level-grid"></div>
         <button class="btn secondary" id="btn-back-main">返回主菜单</button>
       </div>
 
       <!-- 暂停菜单 -->
       <div id="pause-menu" class="screen">
-        <h2>已暂停</h2>
-        <button class="btn" id="btn-resume">继续游戏</button>
-        <button class="btn secondary" id="btn-restart">重新开始</button>
-        <button class="btn secondary" id="btn-quit">退出到主菜单</button>
+        <div class="menu-panel compact">
+          <h2>已暂停</h2>
+          <p class="screen-subtitle">调整节奏，重新规划防线。</p>
+          <button class="btn" id="btn-resume">继续游戏</button>
+          <button class="btn secondary" id="btn-restart">重新开始</button>
+          <button class="btn secondary" id="btn-quit">退出到主菜单</button>
+        </div>
       </div>
 
       <!-- 统计与成就 -->
       <div id="stats-screen" class="screen">
         <h2>统计与成就</h2>
         <div id="stats-content" class="scrollable">
-          <div id="stats-summary" style="margin-bottom: 20px; color: #aaa; text-align: center;"></div>
+          <div id="stats-summary"></div>
           <div id="achievements-list"></div>
         </div>
         <button class="btn secondary" id="btn-back-main-stats">返回主菜单</button>
@@ -319,53 +550,57 @@
 
       <!-- 设置 -->
       <div id="settings-screen" class="screen">
-        <h2>设置</h2>
-        <div id="settings-content" class="scrollable">
-          <div class="setting-row">
-            <label>主音量</label>
-            <input type="range" id="setting-master" min="0" max="100" value="100" />
-            <span class="setting-value" id="value-master">100%</span>
+        <div class="menu-panel settings-panel">
+          <h2>设置</h2>
+          <div id="settings-content" class="scrollable">
+            <div class="setting-row">
+              <label>主音量</label>
+              <input type="range" id="setting-master" min="0" max="100" value="100" />
+              <span class="setting-value" id="value-master">100%</span>
+            </div>
+            <div class="setting-row">
+              <label>音乐音量</label>
+              <input type="range" id="setting-music" min="0" max="100" value="40" />
+              <span class="setting-value" id="value-music">40%</span>
+            </div>
+            <div class="setting-row">
+              <label>音效音量</label>
+              <input type="range" id="setting-sfx" min="0" max="100" value="70" />
+              <span class="setting-value" id="value-sfx">70%</span>
+            </div>
+            <div class="setting-row">
+              <label>画质</label>
+              <select id="setting-quality">
+                <option value="low">低</option>
+                <option value="medium">中</option>
+                <option value="high" selected>高</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <label>路径预览</label>
+              <input type="checkbox" id="setting-path-preview" checked />
+            </div>
+            <div class="setting-row">
+              <label>粒子特效</label>
+              <input type="checkbox" id="setting-particles" checked />
+            </div>
           </div>
-          <div class="setting-row">
-            <label>音乐音量</label>
-            <input type="range" id="setting-music" min="0" max="100" value="40" />
-            <span class="setting-value" id="value-music">40%</span>
+          <div class="btn-row">
+            <button class="btn secondary" id="btn-reset-settings">恢复默认</button>
+            <button class="btn secondary" id="btn-back-main-settings">返回主菜单</button>
           </div>
-          <div class="setting-row">
-            <label>音效音量</label>
-            <input type="range" id="setting-sfx" min="0" max="100" value="70" />
-            <span class="setting-value" id="value-sfx">70%</span>
-          </div>
-          <div class="setting-row">
-            <label>画质</label>
-            <select id="setting-quality">
-              <option value="low">低</option>
-              <option value="medium">中</option>
-              <option value="high" selected>高</option>
-            </select>
-          </div>
-          <div class="setting-row">
-            <label>路径预览</label>
-            <input type="checkbox" id="setting-path-preview" checked />
-          </div>
-          <div class="setting-row">
-            <label>粒子特效</label>
-            <input type="checkbox" id="setting-particles" checked />
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="btn secondary" id="btn-reset-settings">恢复默认</button>
-          <button class="btn secondary" id="btn-back-main-settings">返回主菜单</button>
         </div>
       </div>
 
       <!-- 游戏结束 -->
       <div id="game-over" class="screen">
-        <h2 id="game-over-title">游戏结束</h2>
-        <p id="game-over-stats"></p>
-        <button class="btn" id="btn-next-level">继续下一关</button>
-        <button class="btn" id="btn-retry">再试一次</button>
-        <button class="btn secondary" id="btn-back-levels">关卡选择</button>
+        <div class="menu-panel compact">
+          <h2 id="game-over-title">游戏结束</h2>
+          <div id="game-over-stats"></div>
+          <button class="btn" id="btn-next-level">继续下一关</button>
+          <button class="btn" id="btn-retry">再试一次</button>
+          <button class="btn secondary" id="btn-back-levels">关卡选择</button>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>

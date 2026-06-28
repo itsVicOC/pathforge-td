@@ -58,7 +58,10 @@ export class MenuManager {
     title.style.color = victory ? '#ffd700' : '#ff5252';
 
     const statsEl = document.getElementById('game-over-stats')!;
-    statsEl.textContent = `完成波次: ${stats.wave} | 击杀敌人: ${stats.kills}`;
+    statsEl.innerHTML = `
+      <div class="result-stat"><span>完成波次</span><strong>${stats.wave}</strong></div>
+      <div class="result-stat"><span>击杀敌人</span><strong>${stats.kills}</strong></div>
+    `;
 
     const nextButton = document.getElementById('btn-next-level') as HTMLButtonElement | null;
     if (nextButton) {
@@ -229,7 +232,8 @@ export class MenuManager {
       const btn = document.createElement('button');
       btn.className = `level-btn ${unlocked ? '' : 'locked'}`;
       btn.innerHTML = `
-        <div>${config.name}</div>
+        <div class="level-id">${id}</div>
+        <div class="level-name">${config.name}</div>
         <div class="stars">${unlocked ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '🔒'}</div>
       `;
 
@@ -262,33 +266,25 @@ export class MenuManager {
     }
 
     summary.innerHTML = `
-      <div>累计击杀: ${stats.totalKills}</div>
-      <div>Boss 击杀: ${stats.totalBossKills}</div>
-      <div>最高波次: ${stats.highestWave}</div>
-      <div>通关关卡: ${completedLevels} / ${Object.keys(LEVEL_CONFIGS).length}</div>
-      <div>获得星星: ${totalStars}</div>
+      <div class="stat-pill"><span>累计击杀</span><strong>${stats.totalKills}</strong></div>
+      <div class="stat-pill"><span>Boss 击杀</span><strong>${stats.totalBossKills}</strong></div>
+      <div class="stat-pill"><span>最高波次</span><strong>${stats.highestWave}</strong></div>
+      <div class="stat-pill"><span>通关关卡</span><strong>${completedLevels} / ${Object.keys(LEVEL_CONFIGS).length}</strong></div>
+      <div class="stat-pill"><span>获得星星</span><strong>${totalStars}</strong></div>
     `;
 
     list.innerHTML = '';
     for (const ach of ACHIEVEMENTS) {
       const isUnlocked = unlocked.includes(ach.id);
       const div = document.createElement('div');
-      div.style.cssText = `
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        margin: 6px 0;
-        background: ${isUnlocked ? 'rgba(76, 175, 80, 0.2)' : 'rgba(100, 100, 100, 0.2)'};
-        border: 1px solid ${isUnlocked ? '#4caf50' : '#666'};
-        opacity: ${isUnlocked ? 1 : 0.6};
-      `;
+      div.className = `achievement ${isUnlocked ? 'unlocked' : ''}`;
       div.innerHTML = `
-        <span style="font-size: 24px; margin-right: 12px;">${ach.icon}</span>
+        <span class="achievement-icon">${ach.icon}</span>
         <div>
-          <div style="font-weight: bold;">${ach.name}</div>
-          <div style="font-size: 12px; color: #aaa;">${ach.description}</div>
+          <div class="achievement-name">${ach.name}</div>
+          <div class="achievement-desc">${ach.description}</div>
         </div>
-        <div style="margin-left: auto;">${isUnlocked ? '✅' : '🔒'}</div>
+        <div class="achievement-state">${isUnlocked ? '已达成' : '未达成'}</div>
       `;
       list.appendChild(div);
     }
